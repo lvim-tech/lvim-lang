@@ -1,0 +1,171 @@
+*lvim-lang.txt*                     A unified per-language dev-tooling base for lvim-tech
+
+==============================================================================
+CONTENTS                                                     *lvim-lang-contents*
+
+    1. Introduction ......................... |lvim-lang-introduction|
+    2. Setup ................................ |lvim-lang-setup|
+    3. Configuration ........................ |lvim-lang-configuration|
+    4. Commands ............................. |lvim-lang-commands|
+    5. Run configurations ................... |lvim-lang-run-configs|
+    6. Statusline ........................... |lvim-lang-statusline|
+    7. Providers ............................ |lvim-lang-providers|
+    8. Health ............................... |lvim-lang-health|
+
+==============================================================================
+1. INTRODUCTION                                          *lvim-lang-introduction*
+
+lvim-lang is one thin core into which per-language providers plug. The core is a
+provider registry, toolchain resolution, structured daemon sessions, and a
+notification-driven decoration engine. The heavy machinery is delegated to the
+ecosystem: LSP through lvim-lsp/lvim-ls, process running through lvim-tasks,
+debugging through lvim-dap, installation through lvim-pkg, windows through
+lvim-ui.
+
+Activation is lazy and per project root: nothing is wired for a language until
+the first buffer of its filetype is opened. The first provider is Dart/Flutter.
+
+==============================================================================
+2. SETUP                                                        *lvim-lang-setup*
+
+>lua
+    require("lvim-lang").setup({})
+<
+setup() merges your options into the live config in place (your values always
+win over the defaults), themes the highlight groups, loads the built-in
+providers (each self-registers), and installs the |:LvimLang| command. It is
+idempotent.
+
+==============================================================================
+3. CONFIGURATION                                        *lvim-lang-configuration*
+
+Everything is configurable; the full default configuration:
+
+>lua
+    {
+        enabled = true,
+        dev_log = {
+            open_cmd = "botright 15split",
+            max_lines = 5000,
+            focus_on_open = false,
+            notify_errors = true,
+        },
+        decorations = { enabled = true },
+        project = { dir = ".lvim", run_file = "lang/run.lua" },
+        statusline = true,
+        icons = { run_config = "..." },
+        providers = {
+            dart = {
+                flutter_path = nil,
+                dart_path = nil,
+                flutter_lookup_cmd = nil,
+                fvm = true,
+                sdk = {
+                    repo = "https://github.com/flutter/flutter.git",
+                    ref = "stable",
+                },
+                lsp = {
+                    settings = {
+                        completeFunctionCalls = true,
+                        showTodos = true,
+                        renameFilesWithClasses = "prompt",
+                        updateImportsOnRename = true,
+                        enableSnippets = true,
+                        documentation = "full",
+                    },
+                    init_options = {
+                        onlyAnalyzeProjectsWithOpenFiles = false,
+                        suggestFromUnimportedLibraries = true,
+                    },
+                },
+                decorations = {
+                    closing_labels = true,
+                    closing_labels_prefix = "// ",
+                },
+                outline = true,
+                icons = {
+                    device = "...", emulator = "...", fvm = "...",
+                    statusline = "...", running = "...", stopped = "...",
+                    devtools = "...", platform = "...",
+                },
+            },
+        },
+    }
+<
+All Nerd Font icons above are configurable. Project-local config lives under the
+unified ".lvim/<plugin>/" namespace (run configs at ".lvim/lang/run.lua").
+
+==============================================================================
+4. COMMANDS                                                  *lvim-lang-commands*
+
+                                                                     *:LvimLang*
+Core:
+    :LvimLang status        Enabled state and registered providers.
+    :LvimLang providers     List registered providers.
+    :LvimLang toolchain     Resolve the active provider's toolchain.
+
+Dart / Flutter:
+    :LvimLang run [args]         flutter run --machine (selected device + run config).
+    :LvimLang attach [args]      flutter attach --machine.
+    :LvimLang reload | restart   Hot reload / hot restart.
+    :LvimLang quit | detach      Stop / detach the running app.
+    :LvimLang log [toggle|clear] The dev-log panel.
+    :LvimLang devices | emulators  Pick a device / launch an emulator.
+    :LvimLang config             Pick the active run configuration.
+    :LvimLang devtools           Start DevTools and open its URL.
+    :LvimLang inspect | paint    Toggle widget inspector / debug paint.
+    :LvimLang brightness | platform  Flip brightness / override target platform.
+    :LvimLang super | reanalyze  dartls: go to super / reanalyze.
+    :LvimLang lsp restart        Restart dartls.
+    :LvimLang labels             Toggle closing-label decorations.
+    :LvimLang pub <get|upgrade>  Dependency commands (through lvim-tasks).
+    :LvimLang fvm                Switch the FVM-pinned Flutter SDK.
+    :LvimLang install            Install the Flutter SDK via lvim-pkg.
+
+==============================================================================
+5. RUN CONFIGURATIONS                                     *lvim-lang-run-configs*
+
+Named run configs live in ".lvim/lang/run.lua" (a pure-data file returning a
+list). :LvimLang config picks the active one; :LvimLang run applies it.
+
+>lua
+    return {
+        { name = "dev", mode = "debug", flavor = "dev" },
+        {
+            name = "prod",
+            mode = "release",              -- "debug" | "profile" | "release"
+            flavor = "prod",
+            target = "lib/main_prod.dart",
+            device = "flutter-tester",     -- overrides the selected device
+            dart_define = { API_URL = "https://api.example.com" },
+            args = { "--no-sound-null-safety" },
+        },
+    }
+<
+==============================================================================
+6. STATUSLINE                                              *lvim-lang-statusline*
+
+>lua
+    require("lvim-lang").status()
+<
+Returns the active provider's segment (device, run state, active run config) for
+the current buffer.
+
+==============================================================================
+7. PROVIDERS                                                *lvim-lang-providers*
+
+A provider is a Lua module that calls
+`require("lvim-lang").register(spec, defaults)` with an LvimLangProvider spec
+(name, filetypes, root_patterns, and optional toolchain / lsp / commands /
+tasks / decorations / outline / dap / statusline / health fields). Built-in
+providers self-register on setup; external providers may register at any time.
+
+==============================================================================
+8. HEALTH                                                      *lvim-lang-health*
+
+>vim
+    :checkhealth lvim-lang
+<
+Reports core state, ecosystem dependencies, and each provider's own checks.
+
+vim:tw=78:ts=8:ft=help:norl:
