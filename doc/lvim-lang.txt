@@ -109,12 +109,12 @@ Core:
     :LvimLang toolchain     Resolve the active provider's toolchain.
 
 Dart / Flutter:
-    :LvimLang run [args]         flutter run --machine (selected device + run config).
+    :LvimLang run [args]         Pick a device, then flutter run --machine (+ run config).
     :LvimLang attach [args]      flutter attach --machine.
     :LvimLang reload | restart   Hot reload / hot restart.
     :LvimLang quit | detach      Stop / detach the running app.
     :LvimLang log [toggle|clear] [bottom|top|area|float|right|left]  Dev-log panel.
-    :LvimLang devices | emulators  Pick a device / launch an emulator.
+    :LvimLang emulators          List and launch an emulator.
     :LvimLang config             Pick the active run configuration.
     :LvimLang devtools           Start DevTools and open its URL.
     :LvimLang inspect | paint    Toggle widget inspector / debug paint.

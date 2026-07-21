@@ -158,12 +158,12 @@ require("lvim-lang").setup({
 
 | Command | Description |
 | --- | --- |
-| `:LvimLang run [args]` | `flutter run --machine` on the selected device (+ active run config) |
+| `:LvimLang run [args]` | Pick the target device, then `flutter run --machine` (+ active run config) |
 | `:LvimLang attach [args]` | `flutter attach --machine` |
 | `:LvimLang reload` / `restart` | Hot reload / hot restart |
 | `:LvimLang quit` / `detach` | Stop / detach the running app |
 | `:LvimLang log [toggle\|clear] [bottom\|top\|area\|float\|right\|left]` | The dev-log panel (placement token) |
-| `:LvimLang devices` / `emulators` | Pick a device / launch an emulator |
+| `:LvimLang emulators` | List and launch an emulator |
 | `:LvimLang config` | Pick the active run configuration |
 | `:LvimLang devtools` | Start DevTools and open its URL |
 | `:LvimLang inspect` / `paint` | Toggle the widget inspector / debug paint |

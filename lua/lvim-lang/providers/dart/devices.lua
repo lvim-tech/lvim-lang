@@ -107,21 +107,26 @@ function M.selected(root)
     return nil
 end
 
---- `:LvimLang devices` — list connected devices and remember the chosen one.
----@param _args string[]
+--- Query the connected devices and ALWAYS open the picker to choose the target (the last-used one
+--- pre-focused), remembering the choice. `cb(device|nil)` fires after the choice (nil on cancel / no
+--- devices). This is the device step of `:LvimLang run` — there is no separate command.
 ---@param ctx table  { provider, root, bufnr }
+---@param cb? fun(device: table|nil)
 ---@return nil
-function M.pick_device(_args, ctx)
+function M.choose(ctx, cb)
     local root = ctx.root
-    query_list(root, "device.getDevices", function(devices)
-        if #devices == 0 then
+    query_list(root, "device.getDevices", function(list)
+        if #list == 0 then
             vim.notify("lvim-lang: no devices found", vim.log.levels.INFO, TITLE)
+            if cb then
+                cb(nil)
+            end
             return
         end
         local current = M.selected(root)
         local ic = icons()
         local items, current_idx = {}, nil
-        for i, d in ipairs(devices) do
+        for i, d in ipairs(list) do
             items[i] = {
                 label = d.name or d.id,
                 icon = d.emulator and (ic.emulator or "󰄰") or (ic.device or "󰄶"),
@@ -133,10 +138,17 @@ function M.pick_device(_args, ctx)
         end
         ui.pick({ title = "Flutter devices", items = items, current = current_idx }, function(item)
             if not item then
+                if cb then
+                    cb(nil)
+                end
                 return
             end
-            M.remember(root, { id = item.device.id, name = item.device.name })
-            vim.notify("lvim-lang: device → " .. (item.device.name or item.device.id), vim.log.levels.INFO, TITLE)
+            local device = { id = item.device.id, name = item.device.name }
+            M.remember(root, device)
+            vim.notify("lvim-lang: device → " .. (device.name or device.id), vim.log.levels.INFO, TITLE)
+            if cb then
+                cb(device)
+            end
         end)
     end)
 end

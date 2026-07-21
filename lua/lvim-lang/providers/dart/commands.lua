@@ -133,7 +133,6 @@ end
 local M = {
     run = { impl = run.run, desc = "flutter run --machine on the selected device" },
     attach = { impl = run.attach, desc = "flutter attach --machine" },
-    devices = { impl = devices.pick_device, desc = "pick the target device" },
     emulators = { impl = devices.pick_emulator, desc = "list and launch an emulator" },
     config = { impl = runcfg.command, desc = "pick the active run configuration (.lvim/lang/run.lua)" },
     devtools = { impl = devtools.open, desc = "start Dart DevTools and open its URL" },

@@ -123,12 +123,17 @@ local function launch(ctx, mode, args)
     )
 end
 
---- `:LvimLang run [args…]` — start the app on the selected (or default) device.
+--- `:LvimLang run [args…]` — always opens the device picker to choose the target, then launches on
+--- it (the last-used device pre-focused). There is no separate device command.
 ---@param args string[]
 ---@param ctx table
 ---@return nil
 function M.run(args, ctx)
-    launch(ctx, "run", args)
+    devices.choose(ctx, function(device)
+        if device then
+            launch(ctx, "run", args)
+        end
+    end)
 end
 
 --- `:LvimLang attach [args…]` — attach to an already-running app.
