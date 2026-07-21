@@ -165,34 +165,115 @@ function M.clear(root)
     end
 end
 
---- Ensure the dev-log panel for a root is visible (idempotent; opens it if not already shown).
+-- The split command per horizontal/vertical placement (a %d for the fixed size). "area" docks in
+-- the lvim-msgarea zone when available, else falls back to a bottom split.
+local SPLIT = {
+    bottom = "botright %dsplit",
+    top = "topleft %dsplit",
+    area = "botright %dsplit",
+    right = "botright %dvsplit",
+    left = "topleft %dvsplit",
+}
+
+--- Resolve the effective placement: a command-token override → the panel's own layout →
+--- the global config.layout → "bottom".
+---@param override? string
+---@return string
+local function resolve_layout(override)
+    local dl = config.dev_log or {}
+    return override or dl.layout or config.layout or "bottom"
+end
+
+--- Apply the canonical panel window options (title winbar, fixed size, no gutters, q to close).
+---@param win integer
+---@param buf integer
+---@param horiz boolean
+---@return nil
+local function dress(win, buf, horiz)
+    if horiz then
+        vim.wo[win].winfixheight = true
+    else
+        vim.wo[win].winfixwidth = true
+    end
+    vim.wo[win].number = false
+    vim.wo[win].relativenumber = false
+    vim.wo[win].signcolumn = "no"
+    vim.wo[win].winbar = "%#LvimLangLogTitle# 󰔶 Flutter Dev Log %*"
+    pcall(function()
+        vim.wo[win].winfixbuf = true
+    end)
+    vim.keymap.set("n", "q", function()
+        if vim.api.nvim_win_is_valid(win) then
+            vim.api.nvim_win_close(win, true)
+        end
+    end, { buffer = buf, nowait = true, silent = true, desc = "close the dev log" })
+end
+
+--- Open the dev-log window for a root in `layout` (native split, or a centered float).
+---@param root string
+---@param layout string
+---@return nil
+local function open_window(root, layout)
+    local buf = ensure_buf(root)
+    local dl = config.dev_log or {}
+    local prev = vim.api.nvim_get_current_win()
+    if layout == "float" then
+        local cols, rows = vim.o.columns, vim.o.lines
+        local width = math.floor(cols * 0.7)
+        local height = math.floor(rows * 0.5)
+        local win = vim.api.nvim_open_win(buf, dl.focus_on_open == true, {
+            relative = "editor",
+            width = width,
+            height = height,
+            row = math.floor((rows - height) / 2 - 1),
+            col = math.floor((cols - width) / 2),
+            style = "minimal",
+            border = "rounded",
+            title = " 󰔶 Flutter Dev Log ",
+            title_pos = "center",
+        })
+        -- Border title only — no winbar (splits inherit winbar; a float must not carry it).
+        vim.wo[win].winbar = ""
+        vim.keymap.set("n", "q", function()
+            if vim.api.nvim_win_is_valid(win) then
+                vim.api.nvim_win_close(win, true)
+            end
+        end, { buffer = buf, nowait = true, silent = true, desc = "close the dev log" })
+    else
+        local horiz = layout == "bottom" or layout == "top" or layout == "area"
+        local size = horiz and (dl.height or 15) or (dl.width or 60)
+        vim.cmd((SPLIT[layout] or SPLIT.bottom):format(size))
+        local win = vim.api.nvim_get_current_win()
+        vim.api.nvim_win_set_buf(win, buf)
+        dress(win, buf, horiz)
+    end
+    autoscroll(buf)
+    if dl.focus_on_open ~= true and vim.api.nvim_win_is_valid(prev) then
+        vim.api.nvim_set_current_win(prev)
+    end
+end
+
+--- Ensure the dev-log panel for a root is visible (idempotent). `layout` overrides the placement.
 ---@param root string
 ---@param layout? string
 ---@return nil
 function M.open(root, layout)
     if not win_for(store(root).bufnr) then
-        M.toggle(root, layout)
+        open_window(root, resolve_layout(layout))
     end
 end
 
---- Toggle the dev-log panel for a root (opens with config.dev_log.open_cmd, or `layout`).
+--- Toggle the dev-log panel for a root (placement: `layout` token → config).
 ---@param root string
 ---@param layout? string
 ---@return nil
 function M.toggle(root, layout)
-    local s = store(root)
-    local win = win_for(s.bufnr)
+    local win = win_for(store(root).bufnr)
     if win then
         vim.api.nvim_win_close(win, true)
         return
     end
-    local buf = ensure_buf(root)
-    vim.cmd(layout or (config.dev_log and config.dev_log.open_cmd) or "botright 15split")
-    vim.api.nvim_win_set_buf(0, buf)
-    autoscroll(buf)
-    if not (config.dev_log and config.dev_log.focus_on_open) then
-        vim.cmd("wincmd p")
-    end
+    open_window(root, resolve_layout(layout))
 end
 
 return M

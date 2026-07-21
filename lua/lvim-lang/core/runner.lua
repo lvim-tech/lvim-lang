@@ -11,8 +11,11 @@ local M = {}
 
 --- Build an lvim-tasks spec from a provider command and run it. A spec may set its own display
 --- `group` (Build/Run/Test/Dependencies…); otherwise it defaults to "lvim-lang:<provider>".
+--- The task's output panel is REVEALED (unless `spec.show == false`) so the action is visible, and
+--- when it finishes the editor's buffers are re-checked (`:checktime`) so any files the task changed
+--- on disk (pubspec.lock, generated code, cleaned build dirs…) reload instead of showing stale text.
 ---@param provider string
----@param spec { name: string, cmd: string[], cwd?: string, env?: table, matcher?: string, group?: string, hooks?: table }
+---@param spec { name: string, cmd: string[], cwd?: string, env?: table, matcher?: string, group?: string, show?: boolean, hooks?: table }
 ---@return table|nil task
 function M.run(provider, spec)
     local ok, tasks = pcall(require, "lvim-tasks")
@@ -20,15 +23,33 @@ function M.run(provider, spec)
         vim.notify("lvim-lang: lvim-tasks not available", vim.log.levels.WARN, { title = "lvim-lang" })
         return nil
     end
-    return tasks.run({
+    -- Reload externally-changed buffers when the task exits (nvim never auto-reloads on its own).
+    local hooks = spec.hooks or {}
+    local prev_exit = hooks.on_exit
+    hooks.on_exit = function(task)
+        if prev_exit then
+            pcall(prev_exit, task)
+        end
+        vim.schedule(function()
+            pcall(vim.cmd, "checktime")
+        end)
+    end
+    local task = tasks.run({
         name = spec.name,
         cmd = spec.cmd,
         cwd = spec.cwd,
         env = spec.env,
         matcher = spec.matcher,
-        hooks = spec.hooks,
+        hooks = hooks,
         group = spec.group or ("lvim-lang:" .. provider),
     })
+    -- Reveal the task panel (with the live output) so the action is visible.
+    if spec.show ~= false then
+        pcall(function()
+            tasks.open()
+        end)
+    end
+    return task
 end
 
 --- Register a provider's lvim-tasks templates (once per provider).

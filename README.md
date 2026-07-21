@@ -54,9 +54,12 @@ require("lvim-lang").setup({
     -- Master switch; when false no provider activates.
     enabled = true,
 
-    -- Shared dev-log panel (a real output split — like a task/quickfix pane).
+    -- Shared dev-log panel. `layout = nil` inherits the global `layout` below; set it to override
+    -- the placement for this panel only. A `:LvimLang log <token>` wins over both.
     dev_log = {
-        open_cmd = "botright 15split",
+        layout = nil, -- nil = inherit config.layout; "bottom"|"top"|"area"|"float"|"right"|"left"
+        height = 15, -- rows for a horizontal placement (bottom/top/area)
+        width = 60, -- columns for a vertical placement (right/left)
         max_lines = 5000,
         focus_on_open = false,
         notify_errors = true,
@@ -71,6 +74,11 @@ require("lvim-lang").setup({
 
     -- Whether a provider contributes a statusline segment.
     statusline = true,
+
+    -- GLOBAL default placement for lvim-lang panels (each panel may override with its own
+    -- `layout`; a command token wins over both). "area" docks in the lvim-msgarea zone when
+    -- available, else bottom.
+    layout = "bottom", -- "bottom" | "top" | "area" | "float" | "right" | "left"
 
     -- Generic core UI icons (Nerd Font). Per-language icons live in the provider block.
     icons = {
@@ -154,7 +162,7 @@ require("lvim-lang").setup({
 | `:LvimLang attach [args]` | `flutter attach --machine` |
 | `:LvimLang reload` / `restart` | Hot reload / hot restart |
 | `:LvimLang quit` / `detach` | Stop / detach the running app |
-| `:LvimLang log [toggle\|clear]` | The dev-log panel |
+| `:LvimLang log [toggle\|clear] [bottom\|top\|area\|float\|right\|left]` | The dev-log panel (placement token) |
 | `:LvimLang devices` / `emulators` | Pick a device / launch an emulator |
 | `:LvimLang config` | Pick the active run configuration |
 | `:LvimLang devtools` | Start DevTools and open its URL |
@@ -163,7 +171,9 @@ require("lvim-lang").setup({
 | `:LvimLang super` / `reanalyze` | dartls: go to super / reanalyze |
 | `:LvimLang lsp restart` | Restart dartls |
 | `:LvimLang labels` | Toggle closing-label decorations |
-| `:LvimLang pub <get\|upgrade>` | Dependency commands (through lvim-tasks) |
+| `:LvimLang pub <get\|upgrade\|add\|remove\|outdated>` | Dependency commands (through lvim-tasks) |
+| `:LvimLang clean` / `test` / `doctor` | `flutter clean` / `test` / `doctor -v` |
+| `:LvimLang build <apk\|linux\|web\|…>` | `flutter build <target>` |
 | `:LvimLang fvm` | Switch the FVM-pinned Flutter SDK |
 | `:LvimLang install` | Install the Flutter SDK via lvim-pkg |
 

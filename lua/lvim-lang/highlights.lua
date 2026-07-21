@@ -33,6 +33,8 @@ local function build()
         LvimLangLogNormal = { fg = c.fg, bg = bg },
         LvimLangLogError = { fg = c.red, bg = highlight.blend(c.red, bg, 0.1) },
         LvimLangLogInfo = { fg = c.comment or c.gray or c.fg, bg = bg },
+        -- dev-log panel title (winbar / float border): blue accent, bold
+        LvimLangLogTitle = { fg = c.blue, bg = highlight.blend(c.blue, bg, 0.2), bold = true },
     }
 end
 

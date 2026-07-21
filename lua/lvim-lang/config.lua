@@ -9,8 +9,12 @@
 --
 ---@module "lvim-lang.config"
 
+---@alias LvimLangLayout "bottom"|"top"|"area"|"float"|"right"|"left"
+
 ---@class LvimLangDevLogConfig
----@field open_cmd     string                     Split command the dev-log panel opens with
+---@field layout?      LvimLangLayout             Placement override for THIS panel (nil = inherit config.layout)
+---@field height       integer                    Rows for a horizontal placement (bottom/top/area)
+---@field width        integer                    Columns for a vertical placement (right/left)
 ---@field max_lines    integer                    Ring-buffer cap per project root
 ---@field focus_on_open boolean                   Whether opening the panel focuses it
 ---@field notify_errors boolean                   Surface error lines through the canonical notifier
@@ -32,6 +36,7 @@
 ---@field decorations  LvimLangDecorationsConfig  Shared decoration defaults
 ---@field project      LvimLangProjectConfig      Project-local config file location
 ---@field statusline   boolean                    Whether providers contribute a statusline segment
+---@field layout       LvimLangLayout             GLOBAL default panel placement (each panel may override)
 ---@field icons        LvimLangIconsConfig        Generic core UI icons (Nerd Font)
 ---@field providers    table<string, table>       Per-language option blocks (merged by each provider)
 
@@ -42,10 +47,13 @@ return {
     enabled = true,
 
     -- Shared dev-log panel. A provider's structured runner streams non-protocol output here
-    -- (Flutter's app.log, cargo's human lines, …); the panel itself is one canonical
-    -- lvim-ui.surface split, so every language's log looks and behaves identically.
+    -- (Flutter's app.log, cargo's human lines, …); the panel looks and behaves identically for
+    -- every language. `layout = nil` inherits the global `config.layout`; set it to override the
+    -- placement for THIS panel only.
     dev_log = {
-        open_cmd = "botright 15split",
+        layout = nil, -- nil = inherit config.layout; "bottom"|"top"|"area"|"float"|"right"|"left"
+        height = 15, -- rows for a horizontal placement (bottom/top/area)
+        width = 60, -- columns for a vertical placement (right/left)
         max_lines = 5000,
         focus_on_open = false,
         notify_errors = true,
@@ -69,6 +77,12 @@ return {
 
     -- Whether a provider may contribute a statusline segment (device / run state / version).
     statusline = true,
+
+    -- GLOBAL default placement for lvim-lang panels (the dev log today). Each panel may override
+    -- it with its own `layout` (e.g. dev_log.layout), and a command token wins over both
+    -- (`:LvimLang log right`). "area" docks in the lvim-msgarea zone when available, else bottom.
+    ---@type LvimLangLayout
+    layout = "bottom",
 
     -- Generic core UI icons (Nerd Font). Per-language icons live in the provider block
     -- (e.g. providers.dart.icons).

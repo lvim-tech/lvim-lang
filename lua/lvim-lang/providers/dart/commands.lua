@@ -9,6 +9,7 @@ local toolchain = require("lvim-lang.core.toolchain")
 local decorations = require("lvim-lang.core.decorations")
 local runcfg = require("lvim-lang.core.runcfg")
 local pub = require("lvim-lang.providers.dart.pub")
+local tasks = require("lvim-lang.providers.dart.tasks")
 local run = require("lvim-lang.providers.dart.run")
 local devices = require("lvim-lang.providers.dart.devices")
 local devtools = require("lvim-lang.providers.dart.devtools")
@@ -146,11 +147,11 @@ local M = {
     detach = { impl = run.detach, desc = "detach from the app (leave it running)" },
     log = {
         impl = run.log,
-        desc = "log [toggle|clear] — the dev-log panel",
+        desc = "log [toggle|clear] [bottom|top|area|float|right|left] — the dev-log panel",
         complete = function(arg)
             return vim.tbl_filter(function(c)
                 return arg == "" or c:find(arg, 1, true) == 1
-            end, { "toggle", "clear" })
+            end, { "toggle", "clear", "bottom", "top", "area", "float", "right", "left" })
         end,
     },
     super = { impl = super, desc = "jump to the super definition (dart/textDocument/super)" },
@@ -159,11 +160,23 @@ local M = {
     labels = { impl = labels, desc = "toggle closing-labels decorations" },
     pub = {
         impl = pub.command,
-        desc = "pub get | upgrade — run flutter pub through lvim-tasks",
+        desc = "pub get|upgrade|add|remove|outdated — flutter pub through lvim-tasks",
         complete = function(arg)
             return vim.tbl_filter(function(c)
                 return arg == "" or c:find(arg, 1, true) == 1
-            end, { "get", "upgrade" })
+            end, pub.subs())
+        end,
+    },
+    clean = { impl = tasks.clean, desc = "flutter clean" },
+    test = { impl = tasks.test, desc = "flutter test" },
+    doctor = { impl = tasks.doctor, desc = "flutter doctor -v" },
+    build = {
+        impl = tasks.build,
+        desc = "build <apk|appbundle|linux|web|…> — flutter build",
+        complete = function(arg)
+            return vim.tbl_filter(function(c)
+                return arg == "" or c:find(arg, 1, true) == 1
+            end, tasks.build_targets)
         end,
     },
     fvm = { impl = fvm, desc = "switch the FVM-pinned Flutter SDK version" },
