@@ -25,6 +25,8 @@ unified `lvim-installer` popup when you open a file.
 | Dart / Flutter | `dart` | dartls | [docs/providers/dart.md](docs/providers/dart.md) |
 | Go | `go`, `gomod`, `gowork`, `gotmpl` | gopls | [docs/providers/go.md](docs/providers/go.md) |
 | Rust | `rust` | rust-analyzer | [docs/providers/rust.md](docs/providers/rust.md) |
+| Python | `python` | basedpyright + ruff | [docs/providers/python.md](docs/providers/python.md) |
+| TypeScript / JavaScript | `typescript`, `typescriptreact`, `javascript`, `javascriptreact` | vtsls + eslint | [docs/providers/typescript.md](docs/providers/typescript.md) |
 
 ## Install
 
@@ -78,8 +80,11 @@ require("lvim-lang").setup({
 
     -- Per-language option blocks (see each provider's page).
     providers = {
-        -- dart = { … },   -- docs/providers/dart.md
-        -- go   = { … },   -- docs/providers/go.md
+        -- dart   = { … },   -- docs/providers/dart.md
+        -- go     = { … },   -- docs/providers/go.md
+        -- rust   = { … },   -- docs/providers/rust.md
+        -- python = { … },   -- docs/providers/python.md
+        -- typescript = { … },   -- docs/providers/typescript.md
     },
 })
 ```

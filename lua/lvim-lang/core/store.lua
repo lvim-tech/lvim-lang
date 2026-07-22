@@ -20,7 +20,7 @@ function M.get()
             local ok2, handle = pcall(store.new, {
                 backend = "json",
                 name = "lvim-lang",
-                fields = { devices = {}, run_configs = {} },
+                fields = { devices = {}, run_configs = {}, python_interpreters = {} },
             })
             db = (ok2 and handle) or false
         else
