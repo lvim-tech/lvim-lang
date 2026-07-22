@@ -22,6 +22,8 @@ local function build()
             LvimLangLogNormal = { link = "NormalFloat", default = true },
             LvimLangLogError = { link = "DiagnosticError", default = true },
             LvimLangLogInfo = { link = "Comment", default = true },
+            LvimLangCoverageCovered = { link = "DiagnosticOk", default = true },
+            LvimLangCoverageUncovered = { link = "DiagnosticError", default = true },
         }
     end
     local c = colors
@@ -35,6 +37,9 @@ local function build()
         LvimLangLogInfo = { fg = c.comment or c.gray or c.fg, bg = bg },
         -- dev-log panel title (winbar / float border): blue accent, bold
         LvimLangLogTitle = { fg = c.blue, bg = highlight.blend(c.blue, bg, 0.2), bold = true },
+        -- test coverage gutter marks: covered green, uncovered red (a provider's `coverage` command)
+        LvimLangCoverageCovered = { fg = c.green },
+        LvimLangCoverageUncovered = { fg = c.red },
     }
 end
 

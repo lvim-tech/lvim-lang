@@ -23,7 +23,8 @@ debugging through lvim-dap, installation through lvim-pkg, windows through
 lvim-ui.
 
 Activation is lazy and per project root: nothing is wired for a language until
-the first buffer of its filetype is opened. The first provider is Dart/Flutter.
+the first buffer of its filetype is opened. Built-in providers: Dart/Flutter and
+Go (see docs/providers/<name>.md).
 
 ==============================================================================
 2. SETUP                                                        *lvim-lang-setup*
@@ -128,6 +129,26 @@ Dart / Flutter:
     :LvimLang fvm                Switch the FVM-pinned Flutter SDK.
     :LvimLang install            Install the Flutter SDK via lvim-pkg.
 
+Go:
+    :LvimLang build [args]       go build ./...
+    :LvimLang run [target]       go run . (applies the active run config).
+    :LvimLang test [args]        go test ./...
+    :LvimLang test-func          Run the Test/Benchmark/Fuzz under the cursor.
+    :LvimLang test-file          go test the current buffer's package.
+    :LvimLang coverage [clear]   go test -coverprofile + a gutter overlay.
+    :LvimLang vet | generate     go vet ./... / go generate ./...
+    :LvimLang mod <tidy|download|verify|graph|why>   go mod commands.
+    :LvimLang get <module | -u ./...>  go get (add / upgrade a dependency).
+    :LvimLang tags <add|remove> [json|…]  Struct tags at the cursor (gomodifytags).
+    :LvimLang gotests            Table-driven test for the function at the cursor.
+    :LvimLang impl <receiver…> <interface>  Interface method stubs.
+    :LvimLang debug              Start / continue a Delve session.
+    :LvimLang debug-test         Debug the test under the cursor.
+    :LvimLang config             Pick the active run configuration.
+
+See the per-provider docs for the full options and catalogs: docs/providers/dart.md,
+docs/providers/go.md.
+
 ==============================================================================
 5. RUN CONFIGURATIONS                                     *lvim-lang-run-configs*
 
@@ -165,6 +186,12 @@ A provider is a Lua module that calls
 (name, filetypes, root_patterns, and optional toolchain / lsp / commands /
 tasks / decorations / outline / dap / statusline / health fields). Built-in
 providers self-register on setup; external providers may register at any time.
+
+Built-in providers: Dart / Flutter (dartls) and Go (gopls). Each owns a
+per-filetype catalog of LSP server(s), formatters, linters and debuggers — you
+pick the active tools and override any setting, and the chosen tools install
+through the unified lvim-installer popup on file open. Full options and catalogs
+per provider are in docs/providers/<name>.md.
 
 ==============================================================================
 8. HEALTH                                                      *lvim-lang-health*

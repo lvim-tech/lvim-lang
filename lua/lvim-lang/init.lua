@@ -25,7 +25,7 @@ local M = {}
 -- Built-in providers loaded by setup(); each module self-registers on require. Growing this
 -- list is how a new first-party language provider ships.
 ---@type string[]
-local BUILTIN_PROVIDERS = { "dart" }
+local BUILTIN_PROVIDERS = { "dart", "go" }
 
 ---@type boolean
 local registered = false

@@ -26,6 +26,13 @@ local function opts()
     return config.providers.dart or {}
 end
 
+--- The dartls server catalog entry (settings / init_options), from config.providers.dart.lsp.servers.dart.
+---@return table
+local function server_opts()
+    local lsp = opts().lsp or {}
+    return (lsp.servers and lsp.servers.dart) or {}
+end
+
 --- Resolve the project root for the current buffer using dartls' root markers.
 ---@return string
 local function current_root()
@@ -57,6 +64,7 @@ return {
         ---@return table
         config = function()
             local o = opts()
+            local so = server_opts()
             local dart = toolchain.resolve("dart", "dart", current_root()) or "dart"
             -- closingLabels must be requested in init_options for dartls to SEND the
             -- notifications at all; the decoration engine then gates their rendering (so the
@@ -66,7 +74,7 @@ return {
                 and not (config.decorations and config.decorations.enabled == false)
             -- flutterOutline drives the Flutter Outline source for the outline panel.
             local outline_on = o.outline ~= false
-            local init = vim.tbl_extend("force", (o.lsp and o.lsp.init_options) or {}, {
+            local init = vim.tbl_extend("force", so.init_options or {}, {
                 closingLabels = deco_on,
                 flutterOutline = outline_on,
             })
@@ -75,7 +83,7 @@ return {
                 filetypes = { "dart" },
                 capabilities = capabilities(),
                 init_options = init,
-                settings = { dart = (o.lsp and o.lsp.settings) or {} },
+                settings = { dart = so.settings or {} },
                 handlers = {
                     ["dart/textDocument/publishClosingLabels"] = decorations.handler(labels_spec),
                     ["dart/textDocument/publishFlutterOutline"] = outline.handler(),

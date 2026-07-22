@@ -29,24 +29,31 @@ local DEFAULTS = {
         repo = "https://github.com/flutter/flutter.git",
         ref = "stable",
     },
-    -- dartls (the Dart analysis server) configuration. `settings.dart` and `init_options` are
-    -- passed straight through to the server; users override any key via
-    -- setup({ providers = { dart = { lsp = { settings = { … } } } } }).
+    -- LSP server catalog (canonical per-provider shape). dartls ships with the Dart SDK, so it has
+    -- NO mason package (`mason` absent) — presence is the toolchain's / health's concern. `default`
+    -- may be a string or a list (multi-LSP); Dart runs the single analysis server. `settings` and
+    -- `init_options` pass straight through; users override any key via
+    -- setup({ providers = { dart = { lsp = { servers = { dart = { settings = { … } } } } } } }).
     lsp = {
-        settings = {
-            completeFunctionCalls = true,
-            showTodos = true,
-            renameFilesWithClasses = "prompt",
-            updateImportsOnRename = true,
-            enableSnippets = true,
-            documentation = "full",
+        servers = {
+            dart = {
+                settings = {
+                    completeFunctionCalls = true,
+                    showTodos = true,
+                    renameFilesWithClasses = "prompt",
+                    updateImportsOnRename = true,
+                    enableSnippets = true,
+                    documentation = "full",
+                },
+                init_options = {
+                    onlyAnalyzeProjectsWithOpenFiles = false,
+                    suggestFromUnimportedLibraries = true,
+                    -- closingLabels / flutterOutline are set dynamically by servers/dart.lua from the
+                    -- decorations / outline config.
+                },
+            },
         },
-        init_options = {
-            onlyAnalyzeProjectsWithOpenFiles = false,
-            suggestFromUnimportedLibraries = true,
-            -- closingLabels / flutterOutline are set dynamically by servers/dart.lua from the
-            -- decorations / outline config.
-        },
+        default = "dart",
     },
     -- Feed the Flutter Outline (widget tree) into the lvim-lsp outline panel instead of the
     -- plain documentSymbol list. Set false to keep the symbol outline.
@@ -122,14 +129,9 @@ local spec = {
     root_patterns = { "pubspec.yaml", ".git" },
     statusline = statusline,
     toolchain = require("lvim-lang.providers.dart.toolchain"),
-    -- dartls is registered with the engine through lvim-lsp/lvim-ls; its config module lives at
-    -- lvim-lang.servers.dart. `lsp = {}` in the file_types entry means no mason tool is needed
-    -- (dartls ships with the Dart SDK — presence is the toolchain's / health's concern).
-    lsp = {
-        server = "dart",
-        file_types = { filetypes = { "dart" }, lsp = {} },
-        dir_prefix = "lvim-lang.servers",
-    },
+    -- dartls is registered with the engine through lvim-lsp/lvim-ls from the lsp server CATALOG in
+    -- DEFAULTS above; core.lsp.register_catalog fans it out (its config module is
+    -- lvim-lang.servers.dart). dartls ships with the Dart SDK, so it declares no mason package.
     -- Notification-driven decorations (registered with the engine so the toggle works before the
     -- first notification; the handler itself is wired in servers/dart.lua).
     decorations = { require("lvim-lang.providers.dart.labels") },

@@ -19,7 +19,7 @@ local state = require("lvim-lang.state")
 ---@field filetypes     string[]                      Filetypes that activate the provider
 ---@field root_patterns string[]                      Project-root markers (walked up from the file)
 ---@field toolchain?    LvimLangToolchainSpec         Toolchain resolution strategies (see core.toolchain)
----@field lsp?          LvimLangLspSpec               LSP registration spec (see core.lsp)
+---@field lsp?          table                         LSP server CATALOG defaults ({ servers = {…}, default = string|string[], … }); the live copy lives in config.providers[name].lsp and is fanned out by core.lsp.register_catalog
 ---@field commands?     table<string, LvimLangCommand> Subcommands exposed under :LvimLang
 ---@field tasks?        table[]                       lvim-tasks templates to register
 ---@field decorations?  LvimLangDecorationSpec[]      Notification→decoration specs (see core.decorations)
@@ -138,9 +138,10 @@ function M.register(spec, defaults)
     -- One-time provider wiring, AFTER the config defaults are seeded (so the server config and
     -- task templates read effective options). Both bridges are additive and idempotent; the
     -- engines (lvim-ls, lvim-tasks) then handle each buffer/root/run themselves.
-    if spec.lsp then
-        require("lvim-lang.core.lsp").register(spec.lsp)
-    end
+    -- LSP: fan the provider's server catalog (config.providers[name].lsp.servers + default) out to
+    -- lvim-ls — one entry per chosen server, the primary carrying the formatter/linter/debugger/tool
+    -- install union. No-ops when the provider declares no LSP catalog.
+    require("lvim-lang.core.lsp").register_catalog(spec.name)
     if spec.tasks then
         require("lvim-lang.core.runner").register_templates(spec.tasks)
     end
