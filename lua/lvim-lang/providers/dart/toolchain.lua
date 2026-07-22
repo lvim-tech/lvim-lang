@@ -90,14 +90,22 @@ return {
         },
     },
 
-    --- `<bin> --version` first line, trimmed.
+    --- `<bin> --version` — first NON-EMPTY line, trimmed. `flutter --version` can prefix its
+    --- banner with a blank / progress line when the tool is cold (bootstrapping), so we skip
+    --- leading empties instead of trusting `out[1]`.
     ---@param bin string
     ---@return string|nil
     version = function(bin)
         local out = vim.fn.systemlist({ bin, "--version" })
-        if vim.v.shell_error ~= 0 or type(out) ~= "table" or not out[1] then
+        if vim.v.shell_error ~= 0 or type(out) ~= "table" then
             return nil
         end
-        return vim.trim(out[1])
+        for _, line in ipairs(out) do
+            local trimmed = vim.trim(line)
+            if trimmed ~= "" then
+                return trimmed
+            end
+        end
+        return nil
     end,
 }
