@@ -89,6 +89,23 @@ function M.file(_args, _ctx)
     run_test(buffer_pkg_dir(), { "test", "-v", "." }, "go test (file package)")
 end
 
+--- `:LvimLang gotestsum [args]` — run the tests through gotestsum (the same `go test`, nicer
+--- summarised output). On-demand: gotestsum is a mason package, installed on first use via
+--- core.ensure, then the run goes through lvim-tasks (Test group, `go` matcher). Analogous to Rust's
+--- `nextest`.
+---@param args string[]
+---@param ctx table
+---@return nil
+function M.gotestsum(args, ctx)
+    local dir = (ctx and ctx.root) or buffer_pkg_dir()
+    require("lvim-lang.core.ensure").tool("gotestsum", "gotestsum", function(bin)
+        local argv = { bin, "--format", "testname", "--" }
+        vim.list_extend(argv, #args > 0 and args or { "./..." })
+        -- gotestsum shells out to `go test`, so it needs `go` on PATH (inherited by the task).
+        runner.run("go", { name = "gotestsum", cmd = argv, cwd = dir, group = "Test", matcher = "go" })
+    end)
+end
+
 --- Clear the coverage overlay from a buffer.
 ---@param bufnr? integer
 ---@return nil

@@ -23,8 +23,8 @@ debugging through lvim-dap, installation through lvim-pkg, windows through
 lvim-ui.
 
 Activation is lazy and per project root: nothing is wired for a language until
-the first buffer of its filetype is opened. Built-in providers: Dart/Flutter and
-Go (see docs/providers/<name>.md).
+the first buffer of its filetype is opened. Built-in providers: Dart/Flutter,
+Go and Rust (see docs/providers/<name>.md).
 
 ==============================================================================
 2. SETUP                                                        *lvim-lang-setup*
@@ -146,8 +146,20 @@ Go:
     :LvimLang debug-test         Debug the test under the cursor.
     :LvimLang config             Pick the active run configuration.
 
+Rust:
+    :LvimLang build | run | test | check      cargo build / run / test / check.
+    :LvimLang test-func          Run the #[test] under the cursor.
+    :LvimLang nextest [args]     cargo nextest run (the faster runner).
+    :LvimLang clippy | fmt       cargo clippy --all-targets / cargo fmt.
+    :LvimLang expand [item]      cargo expand macros into a scratch buffer.
+    :LvimLang add | remove | update   cargo add / remove / update a dependency.
+    :LvimLang deps <update|tree|fetch>  cargo dependency commands.
+    :LvimLang debug              Start / continue a CodeLLDB session.
+    :LvimLang debug-test         Debug the test under the cursor.
+    :LvimLang config             Pick the active run configuration.
+
 See the per-provider docs for the full options and catalogs: docs/providers/dart.md,
-docs/providers/go.md.
+docs/providers/go.md, docs/providers/rust.md.
 
 ==============================================================================
 5. RUN CONFIGURATIONS                                     *lvim-lang-run-configs*
@@ -187,7 +199,7 @@ A provider is a Lua module that calls
 tasks / decorations / outline / dap / statusline / health fields). Built-in
 providers self-register on setup; external providers may register at any time.
 
-Built-in providers: Dart / Flutter (dartls) and Go (gopls). Each owns a
+Built-in providers: Dart / Flutter (dartls), Go (gopls) and Rust (rust-analyzer). Each owns a
 per-filetype catalog of LSP server(s), formatters, linters and debuggers — you
 pick the active tools and override any setting, and the chosen tools install
 through the unified lvim-installer popup on file open. Full options and catalogs

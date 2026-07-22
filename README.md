@@ -24,6 +24,7 @@ unified `lvim-installer` popup when you open a file.
 | --- | --- | --- | --- |
 | Dart / Flutter | `dart` | dartls | [docs/providers/dart.md](docs/providers/dart.md) |
 | Go | `go`, `gomod`, `gowork`, `gotmpl` | gopls | [docs/providers/go.md](docs/providers/go.md) |
+| Rust | `rust` | rust-analyzer | [docs/providers/rust.md](docs/providers/rust.md) |
 
 ## Install
 

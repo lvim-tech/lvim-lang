@@ -19,6 +19,7 @@ local M = {
     test = { impl = tasks.test, desc = "go test ./... [args]" },
     ["test-func"] = { impl = test.func, desc = "run the Test/Benchmark/Fuzz/Example under the cursor" },
     ["test-file"] = { impl = test.file, desc = "go test — the current buffer's package" },
+    gotestsum = { impl = test.gotestsum, desc = "run tests through gotestsum (nicer output; on-demand)" },
     coverage = {
         impl = test.coverage,
         desc = "coverage [clear] — go test -coverprofile + gutter overlay",

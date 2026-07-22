@@ -47,6 +47,8 @@ function M.select(root, name)
     local all = db.run_configs or {}
     all[root] = name
     db.run_configs = all
+    -- Nudge any statusline segment showing the active run config to refresh now.
+    pcall(vim.api.nvim_exec_autocmds, "User", { pattern = "LvimLangStatus" })
 end
 
 --- The currently-active run config table for a root (the persisted selection, else the first

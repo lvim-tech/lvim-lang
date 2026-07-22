@@ -165,12 +165,12 @@ local DEFAULTS = {
 
     -- Nerd Font icons used in the Go provider's pickers / statusline (all configurable).
     icons = {
-        statusline = "", -- the Go marker in the statusline segment
-        test = "", -- test runner / result row
-        build = "", -- build task row
+        statusline = "󰟓", -- the Go marker in the statusline segment
+        test = "󰙨", -- test runner / result row
+        build = "󰜫", -- build task row
         run = "󰐊", -- run task row
-        debug = "", -- debug session row
-        mod = "", -- go.mod / dependency row
+        debug = "󰃤", -- debug session row
+        mod = "󰏗", -- go.mod / dependency row
         tags = "󰓹", -- struct-tag codegen row
     },
 }
