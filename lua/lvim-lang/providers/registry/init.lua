@@ -67,6 +67,15 @@ local DATA = {
     "vue",
     "astro",
     "twig",
+    -- Wave 7 Tier 3 — batch 7 (scientific / legacy).
+    "fortran",
+    "cobol",
+    "matlab",
+    "tcl",
+    "solidity",
+    "prolog",
+    "powershell",
+    "assembly",
 }
 
 --- The declarative data-file names (for the validate harness / tooling).

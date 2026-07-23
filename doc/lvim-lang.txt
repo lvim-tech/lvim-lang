@@ -288,6 +288,14 @@ pwa-chrome launch type) against the dev server (per-framework URL + webRoot). No
 adapter — component tests run through the JavaScript test runner (vitest / jest) over the
 whole project, not per-framework. Twig's LSP (twiggy) is not in Mason — install it manually.
 
+Declarative Tier 3 providers (scientific / legacy): Fortran, COBOL, MATLAB/Octave, Tcl,
+Solidity, Prolog, PowerShell and Assembly. Fortran and Assembly compile to native binaries
+so they DEBUG with codelldb. Four have a REAL test runner and get a lvim-test adapter:
+Fortran (`fpm test`), Tcl (tcltest), Solidity (`forge test`) and PowerShell (Pester). PSES
+(PowerShell's LSP) has a bespoke launcher module; its DAP is deferred. COBOL / MATLAB /
+Prolog have no Mason LSP — their servers (superbol / matlab-language-server / swipl's
+lsp_server) resolve from PATH and are installed manually.
+
 Companion servers (config.companions, lvim-lang.core.companions) are SECONDARY LSP
 servers that belong to no single language and co-attach across the filetypes of many
 providers: emmet-language-server (abbreviations), tailwindcss-language-server (utility

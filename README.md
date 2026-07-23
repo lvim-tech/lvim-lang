@@ -87,6 +87,14 @@ unified `lvim-installer` popup when you open a file.
 | Vue | `vue` | vue-language-server (Volar) | [docs/providers/vue.md](docs/providers/vue.md) |
 | Astro | `astro` | astro-language-server | [docs/providers/astro.md](docs/providers/astro.md) |
 | Twig | `twig` | twiggy | [docs/providers/twig.md](docs/providers/twig.md) |
+| Fortran | `fortran` | fortls | [docs/providers/fortran.md](docs/providers/fortran.md) |
+| COBOL | `cobol` | superbol (from PATH) | [docs/providers/cobol.md](docs/providers/cobol.md) |
+| MATLAB / Octave | `matlab`, `octave` | matlab-language-server | [docs/providers/matlab.md](docs/providers/matlab.md) |
+| Tcl | `tcl` | tclsp | [docs/providers/tcl.md](docs/providers/tcl.md) |
+| Solidity | `solidity` | nomicfoundation-solidity-language-server | [docs/providers/solidity.md](docs/providers/solidity.md) |
+| Prolog | `prolog` | swipl (lsp_server) | [docs/providers/prolog.md](docs/providers/prolog.md) |
+| PowerShell | `ps1` | powershell-editor-services | [docs/providers/powershell.md](docs/providers/powershell.md) |
+| Assembly | `asm`, `nasm` | asm-lsp | [docs/providers/assembly.md](docs/providers/assembly.md) |
 
 ### Companion servers
 
