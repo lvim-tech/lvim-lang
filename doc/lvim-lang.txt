@@ -303,6 +303,15 @@ vim / latex / cmake complete the migration of the old per-server LSP config (eve
 archived server is already a provider or a companion). No test framework / DAP for this
 group.
 
+Declarative Tier 3 providers (typesetting/data, shaders, HDL, blockchain, proof
+assistants): Typst, AWK, GDScript, Nextflow, GLSL, WGSL, VHDL, SystemVerilog/Verilog,
+Move, Cairo, Lean 4 and Coq/Rocq. Real test/build/DAP ONLY where it genuinely exists:
+Move (`move test`) and Cairo (`scarb test`) get a lvim-test adapter; GDScript is special —
+its LSP AND debug adapter are the running Godot editor's (TCP 6005 / 6006, bespoke module +
+inline connect adapter), and GUT is its test framework. Lean's LSP is `lake serve` from
+PATH (no Mason for Lean 4). AWK / WGSL / VHDL / Nextflow have no real test/build/DAP, so
+none is fabricated.
+
 Companion servers (config.companions, lvim-lang.core.companions) are SECONDARY LSP
 servers that belong to no single language and co-attach across the filetypes of many
 providers: emmet-language-server (abbreviations), tailwindcss-language-server (utility

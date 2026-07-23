@@ -102,6 +102,18 @@ unified `lvim-installer` popup when you open a file.
 | Vimscript | `vim` | vim-language-server | [docs/providers/vim.md](docs/providers/vim.md) |
 | LaTeX | `tex`, `bib`, `plaintex` | texlab | [docs/providers/latex.md](docs/providers/latex.md) |
 | CMake | `cmake` | cmake-language-server | [docs/providers/cmake.md](docs/providers/cmake.md) |
+| Typst | `typst` | tinymist | [docs/providers/typst.md](docs/providers/typst.md) |
+| AWK | `awk` | awk-language-server | [docs/providers/awk.md](docs/providers/awk.md) |
+| GDScript / Godot | `gdscript` | Godot editor (TCP) | [docs/providers/gdscript.md](docs/providers/gdscript.md) |
+| Nextflow | `nextflow` | nextflow-language-server | [docs/providers/nextflow.md](docs/providers/nextflow.md) |
+| GLSL | `glsl`, `vert`, `frag`, `comp` | glsl_analyzer | [docs/providers/glsl.md](docs/providers/glsl.md) |
+| WGSL | `wgsl` | wgsl-analyzer | [docs/providers/wgsl.md](docs/providers/wgsl.md) |
+| VHDL | `vhdl` | rust_hdl (vhdl_ls) | [docs/providers/vhdl.md](docs/providers/vhdl.md) |
+| SystemVerilog / Verilog | `verilog`, `systemverilog` | verible | [docs/providers/systemverilog.md](docs/providers/systemverilog.md) |
+| Move | `move` | move-analyzer | [docs/providers/move.md](docs/providers/move.md) |
+| Cairo | `cairo` | cairo-language-server | [docs/providers/cairo.md](docs/providers/cairo.md) |
+| Lean 4 | `lean` | lake serve | [docs/providers/lean.md](docs/providers/lean.md) |
+| Coq / Rocq | `coq` | coq-lsp | [docs/providers/coq.md](docs/providers/coq.md) |
 
 ### Companion servers
 

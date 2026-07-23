@@ -84,6 +84,19 @@ local DATA = {
     "vim",
     "latex",
     "cmake",
+    -- Wave 9 Tier 3 — batches 9-13 (typesetting/data, shaders, HDL, blockchain, proof assistants).
+    "typst",
+    "awk",
+    "gdscript",
+    "nextflow",
+    "glsl",
+    "wgsl",
+    "vhdl",
+    "systemverilog",
+    "move",
+    "cairo",
+    "lean",
+    "coq",
 }
 
 --- The declarative data-file names (for the validate harness / tooling).
