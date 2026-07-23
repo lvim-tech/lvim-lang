@@ -59,6 +59,15 @@ unified `lvim-installer` popup when you open a file.
 | PureScript | `purescript` | purescript-language-server | [docs/providers/purescript.md](docs/providers/purescript.md) |
 | Ada | `ada` | ada-language-server | [docs/providers/ada.md](docs/providers/ada.md) |
 | Hare | `hare` | hare-lsp | [docs/providers/hare.md](docs/providers/hare.md) |
+| Groovy | `groovy` | groovy-language-server | [docs/providers/groovy.md](docs/providers/groovy.md) |
+| ReScript | `rescript` | rescript-language-server | [docs/providers/rescript.md](docs/providers/rescript.md) |
+| Vala | `vala` | vala-language-server | [docs/providers/vala.md](docs/providers/vala.md) |
+| Roc | `roc` | roc_language_server | [docs/providers/roc.md](docs/providers/roc.md) |
+| Fish | `fish` | fish-lsp | [docs/providers/fish.md](docs/providers/fish.md) |
+| Nushell | `nu` | nushell (`nu --lsp`) | [docs/providers/nushell.md](docs/providers/nushell.md) |
+| Grain | `grain` | grain (`grain lsp`) | [docs/providers/grain.md](docs/providers/grain.md) |
+| Common Lisp | `lisp` | cl-lsp (SLIME/Sly) | [docs/providers/commonlisp.md](docs/providers/commonlisp.md) |
+| Pascal | `pascal` | pasls | [docs/providers/pascal.md](docs/providers/pascal.md) |
 
 ## Install
 

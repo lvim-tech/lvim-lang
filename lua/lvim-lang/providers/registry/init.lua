@@ -35,6 +35,16 @@ local DATA = {
     "purescript",
     "ada",
     "hare",
+    -- Wave 4 Tier 2 — batch 3.
+    "groovy",
+    "rescript",
+    "vala",
+    "roc",
+    "fish",
+    "nushell",
+    "grain",
+    "commonlisp",
+    "pascal",
 }
 
 --- The declarative data-file names (for the validate harness / tooling).
