@@ -24,6 +24,17 @@ local DATA = {
     "perl",
     "d",
     "julia",
+    -- Wave 4 Tier 2 — batch 2.
+    "crystal",
+    "nim",
+    "elm",
+    "v",
+    "odin",
+    "gleam",
+    "racket",
+    "purescript",
+    "ada",
+    "hare",
 }
 
 --- The declarative data-file names (for the validate harness / tooling).

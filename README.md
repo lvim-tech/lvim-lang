@@ -49,6 +49,16 @@ unified `lvim-installer` popup when you open a file.
 | Perl | `perl` | perlnavigator | [docs/providers/perl.md](docs/providers/perl.md) |
 | D | `d` | serve-d | [docs/providers/d.md](docs/providers/d.md) |
 | Julia | `julia` | julia-lsp | [docs/providers/julia.md](docs/providers/julia.md) |
+| Crystal | `crystal` | crystalline | [docs/providers/crystal.md](docs/providers/crystal.md) |
+| Nim | `nim` | nimlangserver | [docs/providers/nim.md](docs/providers/nim.md) |
+| Elm | `elm` | elm-language-server | [docs/providers/elm.md](docs/providers/elm.md) |
+| V | `vlang`, `v` | v-analyzer | [docs/providers/v.md](docs/providers/v.md) |
+| Odin | `odin` | ols | [docs/providers/odin.md](docs/providers/odin.md) |
+| Gleam | `gleam` | gleam (built-in) | [docs/providers/gleam.md](docs/providers/gleam.md) |
+| Racket | `racket`, `scheme` | racket-langserver | [docs/providers/racket.md](docs/providers/racket.md) |
+| PureScript | `purescript` | purescript-language-server | [docs/providers/purescript.md](docs/providers/purescript.md) |
+| Ada | `ada` | ada-language-server | [docs/providers/ada.md](docs/providers/ada.md) |
+| Hare | `hare` | hare-lsp | [docs/providers/hare.md](docs/providers/hare.md) |
 
 ## Install
 

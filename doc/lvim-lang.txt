@@ -261,10 +261,11 @@ no external formatter / linter / debugger, and only non-interactive `ucm`
 invocations; see docs/providers/unison.md.)
 
 Declarative Tier 2 providers (data records in lvim-lang.providers.registry, built
-by the core.declarative factory — no bespoke module): Lua (lua-language-server),
-Bash/Shell (bash-language-server), R (r-languageserver), Perl (perlnavigator),
-D (serve-d) and Julia (julia-lsp). Same catalog / commands / debugging model as
-the bespoke providers; see docs/providers/{lua,bash,r,perl,d,julia}.md.
+by the core.declarative factory — no bespoke module): Lua, Bash/Shell, R, Perl, D,
+Julia, Crystal, Nim, Elm, V, Odin, Gleam, Racket, PureScript, Ada and Hare. Same
+catalog / commands / debugging model as the bespoke providers (the compiled ones —
+Crystal / Nim / V / Odin / Ada / Hare — debug natively through codelldb); see
+docs/providers/<name>.md.
 
 ==============================================================================
 8. HEALTH                                                      *lvim-lang-health*
