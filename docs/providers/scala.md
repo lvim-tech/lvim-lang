@@ -69,7 +69,7 @@ metals own diagnostics), and metals drives debugging itself — so no efm linter
 
 | Filetype | Formatters | Linters | Debuggers | Defaults |
 | --- | --- | --- | --- | --- |
-| `scala` | scalafmt | — | — | formatter=false, linter=false, debugger=false |
+| `scala` | scalafmt | semgrep | — | formatter=false, linter=false, debugger=false |
 | `sbt` | — | — | — | formatter=false, linter=false, debugger=false |
 
 ## Commands

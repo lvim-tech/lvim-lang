@@ -44,7 +44,7 @@ linter default to `false` (the LSP owns them).
 
 | Filetype | Formatters | Linters | Debuggers | Defaults |
 | --- | --- | --- | --- | --- |
-| `php` | php-cs-fixer (efm) | phpstan (efm) | php-debug-adapter | formatter=false, linter=false, debugger=php-debug-adapter |
+| `php` | php-cs-fixer, pint, pretty-php, phpcbf, easy-coding-standard, duster (efm) | phpstan, phpcs, phpmd, tlint, semgrep (efm) | php-debug-adapter | formatter=false, linter=false, debugger=php-debug-adapter |
 
 Selecting an efm formatter (`ft.php.formatter = "php-cs-fixer"`) makes efm own formatting; intelephense's
 formatting is switched off on attach so the two never both format the buffer. phpstan is gated by its

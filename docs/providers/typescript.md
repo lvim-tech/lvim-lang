@@ -53,7 +53,7 @@ dprint formatters; eslint_d / biome / oxlint linters).
 
 | Filetype | Formatters | Linters | Debuggers | Defaults |
 | --- | --- | --- | --- | --- |
-| ts / tsx / js / jsx | prettier, prettierd, biome, dprint | eslint_d, biome, oxlint | js-debug-adapter | formatter=prettier, linter=false, debugger=js-debug-adapter |
+| ts / tsx / js / jsx | prettier, prettierd, biome, dprint, oxfmt, standardjs, ts-standard, rustywind | eslint_d, biome, oxlint, deno, quick-lint-js, semgrep | js-debug-adapter, firefox-debug-adapter | formatter=prettier, linter=false, debugger=js-debug-adapter |
 
 ## Commands
 

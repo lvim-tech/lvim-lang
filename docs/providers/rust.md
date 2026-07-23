@@ -42,7 +42,7 @@ drives clippy (`checkOnSave`), so the default formatter and linter are `false`.
 
 | Filetype | Formatters | Linters | Debuggers | Defaults |
 | --- | --- | --- | --- | --- |
-| `rust` | rustfmt (efm, toolchain) | bacon | codelldb, cpptools | formatter=false, linter=false, debugger=codelldb |
+| `rust` | rustfmt (efm, toolchain) | bacon, semgrep | codelldb, cpptools | formatter=false, linter=false, debugger=codelldb |
 
 ## Commands
 

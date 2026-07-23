@@ -46,7 +46,7 @@ tools are installed / wired. Formatting is done by the **LSP** natively, so the 
 
 | Filetype | Formatters | Linters | Debuggers | Defaults |
 | --- | --- | --- | --- | --- |
-| `cs` | csharpier | — | netcoredbg | formatter=false, linter=false, debugger=netcoredbg |
+| `cs` | csharpier | semgrep | netcoredbg | formatter=false, linter=false, debugger=netcoredbg |
 
 ## Commands
 

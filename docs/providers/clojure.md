@@ -44,7 +44,7 @@ need `java`.
 
 | Filetype | Formatters | Linters | Debuggers | Defaults |
 | --- | --- | --- | --- | --- |
-| `clojure` | cljfmt (efm) | clj-kondo (efm) | — | formatter=cljfmt, linter=clj-kondo |
+| `clojure` | cljfmt, zprint, zprint-clj, joker (efm) | clj-kondo, joker (efm) | — | formatter=cljfmt, linter=clj-kondo |
 | `edn` | cljfmt (efm) | — | — | formatter=cljfmt |
 
 cljfmt is the canonical Clojure formatter and clj-kondo the canonical linter (both via efm). `edn` is

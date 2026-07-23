@@ -58,7 +58,7 @@ ruff from the LSP list (`lsp.server = "basedpyright"`) so the two don't both for
 
 | Filetype | Formatters | Linters | Debuggers | Defaults |
 | --- | --- | --- | --- | --- |
-| `python` | ruff, black, isort, autopep8, yapf | ruff, mypy, flake8, pylint, pyflakes | debugpy | formatter=false, linter=false, debugger=debugpy |
+| `python` | ruff, black, isort, autopep8, yapf, autoflake, blue, darker, docformatter, pyink, usort, reorder-python-imports | ruff, mypy, flake8, pylint, pyflakes, bandit, pydocstyle, pylama, refurb, vulture, flakeheaven, semgrep | debugpy | formatter=false, linter=false, debugger=debugpy |
 
 ## Commands
 

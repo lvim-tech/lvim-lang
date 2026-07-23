@@ -45,7 +45,7 @@ are installed / wired. Formatting and linting are done by **clangd** natively (c
 
 | Filetype | Formatters | Linters | Debuggers | Defaults |
 | --- | --- | --- | --- | --- |
-| `c` / `cpp` / `objc` / `objcpp` | clang-format | clang-tidy | codelldb, cpptools | formatter=false, linter=false, debugger=codelldb |
+| `c` / `cpp` / `objc` / `objcpp` | clang-format | clang-tidy, cpplint, semgrep | codelldb, cpptools | formatter=false, linter=false, debugger=codelldb |
 
 ## Build systems (auto-detected)
 

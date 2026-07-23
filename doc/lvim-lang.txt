@@ -260,6 +260,12 @@ per provider are in docs/providers/<name>.md. (Unison is the lighter exception â
 no external formatter / linter / debugger, and only non-interactive `ucm`
 invocations; see docs/providers/unison.md.)
 
+Declarative Tier 2 providers (data records in lvim-lang.providers.registry, built
+by the core.declarative factory â€” no bespoke module): Lua (lua-language-server),
+Bash/Shell (bash-language-server), R (r-languageserver), Perl (perlnavigator),
+D (serve-d) and Julia (julia-lsp). Same catalog / commands / debugging model as
+the bespoke providers; see docs/providers/{lua,bash,r,perl,d,julia}.md.
+
 ==============================================================================
 8. HEALTH                                                      *lvim-lang-health*
 

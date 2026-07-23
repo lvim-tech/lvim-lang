@@ -57,7 +57,7 @@ The catalog still offers efm tools — to use `google-java-format` + `checkstyle
 
 | Filetype | Formatters | Linters | Debuggers | Defaults |
 | --- | --- | --- | --- | --- |
-| `java` | google-java-format | checkstyle | java-debug-adapter | formatter=false, linter=false, debugger=java-debug-adapter |
+| `java` | google-java-format | checkstyle, semgrep | java-debug-adapter | formatter=false, linter=false, debugger=java-debug-adapter |
 
 ## Commands
 

@@ -45,7 +45,7 @@ default formatter is `false`; the catalog still offers efm formatters.
 
 | Filetype | Formatters | Linters | Debuggers | Defaults |
 | --- | --- | --- | --- | --- |
-| `go` | gofumpt, goimports, golines, gci, goimports-reviser | golangci-lint, revive, staticcheck | delve, go-debug-adapter | formatter=false, linter=golangci-lint, debugger=delve |
+| `go` | gofumpt, goimports, golines, gci, goimports-reviser, crlfmt | golangci-lint, revive, staticcheck, semgrep | delve, go-debug-adapter | formatter=false, linter=golangci-lint, debugger=delve |
 | `gomod` | — | golangci-lint | — | linter=false (opt-in) |
 | `gowork` | — | — | — | — |
 | `gotmpl` | — | — | — | — |

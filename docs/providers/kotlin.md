@@ -44,7 +44,7 @@ a Java runtime must be present.
 
 | Filetype | Formatters | Linters | Debuggers | Defaults |
 | --- | --- | --- | --- | --- |
-| `kotlin` | ktlint (efm) | ktlint (efm) | kotlin-debug-adapter | formatter=ktlint, linter=ktlint, debugger=kotlin-debug-adapter |
+| `kotlin` | ktlint, ktfmt (efm) | ktlint, detekt, semgrep (efm) | kotlin-debug-adapter | formatter=ktlint, linter=ktlint, debugger=kotlin-debug-adapter |
 
 ktlint is the canonical Kotlin formatter + linter, so it is the DEFAULT for both (routed through efm);
 the language server's own formatting is disabled on attach while an efm formatter is active, so they

@@ -43,6 +43,12 @@ unified `lvim-installer` popup when you open a file.
 | Erlang | `erlang` | erlang-ls | [docs/providers/erlang.md](docs/providers/erlang.md) |
 | Elixir | `elixir`, `eelixir`, `heex` | elixir-ls (lexical / next-ls opt-in) | [docs/providers/elixir.md](docs/providers/elixir.md) |
 | Clojure | `clojure`, `edn` | clojure-lsp | [docs/providers/clojure.md](docs/providers/clojure.md) |
+| Lua | `lua` | lua-language-server | [docs/providers/lua.md](docs/providers/lua.md) |
+| Bash / Shell | `sh`, `bash` | bash-language-server | [docs/providers/bash.md](docs/providers/bash.md) |
+| R | `r`, `rmd` | r-languageserver (air opt-in) | [docs/providers/r.md](docs/providers/r.md) |
+| Perl | `perl` | perlnavigator | [docs/providers/perl.md](docs/providers/perl.md) |
+| D | `d` | serve-d | [docs/providers/d.md](docs/providers/d.md) |
+| Julia | `julia` | julia-lsp | [docs/providers/julia.md](docs/providers/julia.md) |
 
 ## Install
 

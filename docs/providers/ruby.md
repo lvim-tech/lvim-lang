@@ -48,7 +48,7 @@ bundle, so the per-filetype efm formatter / linter default to `false` (the LSP o
 
 | Filetype | Formatters | Linters | Debuggers | Defaults |
 | --- | --- | --- | --- | --- |
-| `ruby` | rubocop (efm), standardrb (efm) | rubocop (efm), standardrb (efm) | — (rdbg via the `debug` gem) | formatter=false, linter=false, debugger=false |
+| `ruby` | rubocop, standardrb, rufo, rubyfmt, stree (efm) | rubocop, standardrb, semgrep (efm) | — (rdbg via the `debug` gem) | formatter=false, linter=false, debugger=false |
 
 Selecting an efm formatter (`ft.ruby.formatter = "rubocop"`) makes efm own formatting; ruby-lsp's
 formatting capability is switched off on attach so the two never both format the buffer.
