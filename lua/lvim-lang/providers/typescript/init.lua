@@ -1,40 +1,30 @@
--- lvim-lang.providers.typescript: the TypeScript / JavaScript provider.
--- Assembles the LvimLangProvider spec and self-registers with the core registry on require
--- (lvim-lang.setup loads this module from BUILTIN_PROVIDERS). One provider covers all four JS/TS
--- filetypes (typescript, typescriptreact, javascript, javascriptreact). Reuses the shared core: the
--- per-filetype catalog (core.catalog), the multi-LSP fan-out (core.lsp.register_catalog) and
--- on-demand tooling (core.ensure).
+-- lvim-lang.providers.typescript: the TypeScript / JavaScript provider (base + extend).
+-- Built through the shared factory (core.declarative): a DATA record supplies the common skeleton —
+-- name/filetypes (typescript / typescriptreact / javascript / javascriptreact), the MULTI-LSP catalog
+-- (vtsls for types AND the eslint LSP for diagnostics, both attaching by default), the per-filetype tool
+-- catalog (prettier / prettierd / biome / dprint formatters, eslint_d / biome / oxlint linters, the
+-- js-debug adapter), the node toolchain, the requirement, health and statusline. This module then
+-- EXTENDS the returned spec with JS/TS's project-local resolution — a repo pins its own tools under
+-- `node_modules/.bin`, which must win over a shared copy (the analog of Python's venv-awareness):
+--   * prettier / tsc / vitest / jest resolve node_modules FIRST; the LSP servers keep mason first with
+--     node_modules as a low-priority fallback;
+--   * an `eslint-lsp` alias (the eslint server module resolves by the mason package name, not the key);
+--   * the npm/pnpm/yarn/bun + vitest/jest command surface (providers.typescript.commands / .tasks / .pm).
 --
--- Like Python, the default LSP is a LIST: `vtsls` (types / hover / completion / code actions) AND the
--- `eslint` language server (lint diagnostics + fix-all) attach to the same buffer; `prettier` (efm)
--- owns formatting, so both servers' own formatting is switched off automatically (an efm formatter is
--- active). The whole toolchain is PROJECT-LOCAL first (providers.typescript.toolchain resolves
--- node_modules/.bin before mason / PATH), and the package manager (npm / pnpm / yarn / bun) is
--- detected per project (providers.typescript.pm).
+-- prettier (efm) owns formatting, so both servers' own formatting is switched off on attach
+-- (catalog.lsp_on_attach). vtsls / eslint keep their bespoke server-config modules.
 --
 ---@module "lvim-lang.providers.typescript"
 
-local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
-local toolchain = require("lvim-lang.providers.typescript.toolchain")
-local core_toolchain = require("lvim-lang.core.toolchain")
-local requirements = require("lvim-lang.core.requirements")
+local declarative = require("lvim-lang.core.declarative")
+local detect = require("lvim-lang.core.detect")
 
 -- The four filetypes this provider owns.
 ---@type string[]
 local FILETYPES = { "typescript", "typescriptreact", "javascript", "javascriptreact" }
 
---- Turn OFF an LSP client capability once (per-client, so it covers every buffer of that client).
----@param client table  the LSP client (server_capabilities toggled in place)
----@param cap string    server_capabilities key
----@return nil
-local function disable_cap(client, cap)
-    if client.server_capabilities then
-        client.server_capabilities[cap] = false
-    end
-end
-
--- The per-filetype catalog block, shared by all four filetypes (deep-copied per ft at register).
+-- The per-filetype catalog block, shared by all four filetypes (deep-copied per ft).
 ---@type table
 local FT_BLOCK = {
     formatters = {
@@ -82,24 +72,25 @@ local FT_BLOCK = {
     debuggers = {
         ["js-debug-adapter"] = { mason = "js-debug-adapter" },
     },
-    -- prettier formats (efm); the eslint LSP lints (so no default efm linter); js-debug debugs.
     defaults = { formatter = "prettier", linter = false, debugger = "js-debug-adapter" },
 }
 
----@type table
-local DEFAULTS = {
-    -- Explicit binary paths; each wins over every other resolution strategy.
-    node_path = nil,
-    vtsls_path = nil,
-    eslint_lsp_path = nil,
-    prettier_path = nil,
-    node_lookup_cmd = nil, -- shell command whose first line is the `node` path
-    -- Version manager for node: "mise" | "asdf" | "fnm" | false | function(root).
-    -- Honours a project's pin (.nvmrc / .tool-versions). Default: mise → asdf → fnm → PATH.
-    version_manager = nil,
+---@type LvimLangSpecData
+local DATA = {
+    name = "typescript",
+    filetypes = FILETYPES,
+    root_patterns = { "package.json", "tsconfig.json", "jsconfig.json", ".git" },
 
-    -- LSP server catalog. The default is a LIST — vtsls (types) AND the eslint LSP (lint + fix).
-    -- Set `lsp.server = "vtsls"` to run a single server (or "ts_ls" via a custom entry).
+    runtime = {
+        bin = "node",
+        key = "node",
+        lookup_key = "node_lookup_cmd",
+        managers = { "mise", "asdf", "fnm" },
+        require = true,
+        label = "Node.js runtime",
+        hint = "Install Node.js (e.g. via mise/fnm) and put `node` on PATH; the TypeScript server and eslint run on it.",
+    },
+
     lsp = {
         servers = {
             vtsls = {
@@ -108,7 +99,6 @@ local DEFAULTS = {
                 filetypes = FILETYPES,
                 role = "types", -- completion / hover / definition / rename / inlay hints / code actions
                 settings = {
-                    -- vtsls forwards these to tsserver; inlay hints for both TS and JS.
                     typescript = {
                         inlayHints = {
                             parameterNames = { enabled = "literals" },
@@ -136,11 +126,8 @@ local DEFAULTS = {
                 bin = "vscode-eslint-language-server",
                 filetypes = FILETYPES,
                 role = "diagnostics", -- eslint lint diagnostics + fix-all code action
-                -- prettier owns formatting; the eslint LSP only lints / fixes. vscode-eslint requests
-                -- its configuration SECTION-LESS, so these live at the TOP LEVEL of `settings` (not
-                -- nested under `eslint`); the server module injects `workspaceFolder` / `nodePath` /
-                -- `experimental.useFlatConfig` per project root (they must be defined, else the server
-                -- throws "path … undefined" on textDocument/diagnostic).
+                -- vscode-eslint requests its configuration SECTION-LESS, so these live at the TOP LEVEL of
+                -- `settings`; the server module injects workspaceFolder / nodePath / useFlatConfig per root.
                 settings = {
                     validate = "on",
                     run = "onType",
@@ -171,16 +158,6 @@ local DEFAULTS = {
         javascriptreact = vim.deepcopy(FT_BLOCK),
     },
 
-    -- `:LvimLang types` emits `.d.ts` via tsc (resolved through the toolchain) — no upfront install.
-    codegen = {},
-
-    -- Package manager: "auto" detects it (lockfile / corepack); pin to "npm"|"pnpm"|"yarn"|"bun".
-    package_manager = "auto",
-
-    -- Test runner: "auto" detects vitest / jest (config / devDependency / test script); pin to one.
-    test_runner = "auto",
-
-    -- Statusline / picker icons (Nerd Font, all configurable).
     icons = {
         statusline = "󰛦", -- the TypeScript marker in the statusline segment
         test = "󰙨",
@@ -192,75 +169,52 @@ local DEFAULTS = {
     },
 }
 
---- Health section for :checkhealth lvim-lang: node, the language servers, prettier and the detected
---- package manager, for the current working directory.
----@param h table  the vim.health reporter
----@return nil
-local function health(h)
-    local root = vim.uv.cwd() or "."
+local spec, defaults = declarative.build(DATA)
 
-    local node = core_toolchain.resolve("typescript", "node", root)
-    if node then
-        local ver = core_toolchain.version("typescript", "node", root)
-        h.ok(("node: %s%s"):format(node, ver and ("  (" .. ver .. ")") or ""))
-    else
-        h.warn("node not found — install Node.js or set providers.typescript.node_path")
+-- ── EXTEND: project-local (node_modules/.bin) resolution ────────────────────────────────────────────
+
+--- A tool `bin` inside the project's `node_modules/.bin` (walked up to package.json), if executable —
+--- so a project-pinned prettier / eslint / tsc / vitest wins over a shared copy.
+---@param bin string
+---@return fun(root: string): string|nil
+local function in_node_modules(bin)
+    return function(root)
+        local pkg = vim.fs.root(root, { "package.json" }) or root
+        local p = vim.fs.joinpath(pkg, "node_modules", ".bin", bin)
+        return vim.fn.executable(p) == 1 and p or nil
     end
-
-    for _, tool in ipairs({ "vtsls", "eslint-lsp", "prettier" }) do
-        local path = core_toolchain.resolve("typescript", tool, root)
-        if path then
-            h.ok(("%s: %s"):format(tool, path))
-        else
-            h.info(("%s not found — installed on demand from the mason registry (or node_modules)"):format(tool))
-        end
-    end
-
-    h.info("package manager: " .. require("lvim-lang.providers.typescript.pm").detect(root))
 end
 
---- Statusline segment for a root: the TS marker + the package manager + the active run config.
----@param root string
----@return string
-local function statusline(root)
-    local ic = (config.providers.typescript and config.providers.typescript.icons) or {}
-    local parts = { ic.statusline or "" }
-    parts[#parts + 1] = require("lvim-lang.providers.typescript.pm").detect(root)
-    local rc = require("lvim-lang.core.runcfg").active(root)
-    if rc and rc.name then
-        parts[#parts + 1] = "➤ " .. rc.name
-    end
-    return table.concat(parts, "  ")
-end
-
----@type LvimLangProvider
-local spec = {
-    name = "typescript",
-    filetypes = FILETYPES,
-    root_patterns = { "package.json", "tsconfig.json", "jsconfig.json", ".git" },
-    statusline = statusline,
-    toolchain = toolchain,
-    commands = require("lvim-lang.providers.typescript.commands"),
-    -- lvim-tasks templates (install / arg-less scripts) — also via :LvimLang install / script.
-    tasks = require("lvim-lang.providers.typescript.tasks").templates,
-    --- Surfaced at activation + in :checkhealth: Node.js must be present (the server + eslint run on it).
-    ---@param root string
-    ---@return LvimLangRequirement[]
-    requirements = function(root)
-        return {
-            requirements.tool_present(
-                "typescript",
-                "node",
-                "Node.js runtime",
-                "Install Node.js (e.g. via mise/fnm) and put `node` on PATH; the TypeScript server and eslint "
-                    .. "run on it.",
-                root
-            ),
-        }
-    end,
-    health = health,
+local tc = spec.toolchain.tools
+-- LSP servers keep mason first (editor tools), with a project-local copy as a low-priority fallback.
+table.insert(tc.vtsls, #tc.vtsls, { kind = "path", value = in_node_modules("vtsls") })
+-- The eslint server module resolves by the mason package name, not the catalog key — alias it.
+tc["eslint-lsp"] = tc.eslint
+-- prettier is PROJECT-LOCAL first (a repo pins its formatter), then mason, then PATH.
+table.insert(tc.prettier, 2, { kind = "path", value = in_node_modules("prettier") })
+-- tsc / vitest / jest are project dev-dependencies the commands invoke: node_modules → mason → PATH.
+tc.tsc = {
+    { kind = "path", value = in_node_modules("tsc") },
+    { kind = "path", value = detect.in_mason("tsc") },
+    { kind = "which", value = "tsc" },
+}
+tc.vitest = {
+    { kind = "path", value = in_node_modules("vitest") },
+    { kind = "which", value = "vitest" },
+}
+tc.jest = {
+    { kind = "path", value = in_node_modules("jest") },
+    { kind = "which", value = "jest" },
 }
 
-registry.register(spec, DEFAULTS)
+-- Extra provider config the commands / pm / test modules read.
+defaults.package_manager = "auto" -- "auto" detects (lockfile / corepack); pin to npm|pnpm|yarn|bun
+defaults.test_runner = "auto" -- "auto" detects vitest / jest; pin to one
+defaults.codegen = {} -- `:LvimLang types` emits `.d.ts` via tsc (resolved through the toolchain)
+
+spec.commands = require("lvim-lang.providers.typescript.commands")
+spec.tasks = require("lvim-lang.providers.typescript.tasks").templates
+
+registry.register(spec, defaults)
 
 return spec

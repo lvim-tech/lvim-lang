@@ -1,31 +1,24 @@
--- lvim-lang.providers.ocaml: the OCaml provider.
--- Assembles the LvimLangProvider spec and self-registers with the core registry on require
--- (lvim-lang.setup loads this module from BUILTIN_PROVIDERS). Reuses the Rust/Go core: the
--- per-filetype catalog (core.catalog), the LSP fan-out (core.lsp.register_catalog), the lvim-tasks
--- runner (core.runner) and on-demand tooling (core.ensure).
+-- lvim-lang.providers.ocaml: the OCaml provider (base + extend).
+-- Built through the shared factory (core.declarative): a DATA record supplies the common skeleton —
+-- name/filetypes/root (the whole OCaml family: ocaml / .mli / ocamllex / menhir / dune), the ocaml-lsp
+-- catalog, the per-filetype tool catalog (ocamlformat + ocamlearlybird), the ocaml + dune requirements,
+-- health and statusline. This module then EXTENDS the returned spec with OCaml's idiosyncratic toolchain:
+-- everything is resolved through the active OPAM switch (`opam var bin` in the project root, honouring a
+-- local `_opam/`), which the generic mise/asdf resolver cannot express. dune build/exec/test/utop + opam
+-- deps + earlybird debugging come from providers.ocaml.commands / .dap / .deps.
 --
--- One provider covers the whole OCaml family (ocaml / .mli interfaces / ocamllex / menhir / dune
--- files); a single LSP server — ocaml-lsp (binary `ocamllsp`) — attaches to all of them and formats
--- via ocamlformat natively (exactly as rust-analyzer drives rustfmt), so the default efm formatter /
--- linter are `false` — formatting from the LSP, the catalog still OFFERS ocamlformat via efm (gated
--- on a `.ocamlformat` marker). dune is the single build tool: build / exec / test / utop / fmt go
--- through it (providers.ocaml.tasks); dependencies are declared in dune-project / *.opam and
--- installed via opam (providers.ocaml.deps). Debugging is earlybird (bytecode) through lvim-dap.
---
--- The OCaml toolchain is the user's own — installed and switched through opam (a project-local
--- `_opam/` switch wins); nothing is installed here (ocaml-lsp-server / ocamlformat may also come from
--- the mason registry through the installer).
+-- ocaml-lsp keeps its bespoke servers/ocaml-lsp.lua (a real file wins over the generic shim).
 --
 ---@module "lvim-lang.providers.ocaml"
 
 local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
-local toolchain = require("lvim-lang.core.toolchain")
-local requirements = require("lvim-lang.core.requirements")
+local declarative = require("lvim-lang.core.declarative")
+local detect = require("lvim-lang.core.detect")
 
--- The ocamlformat efm entry, shared by the `.ml` and `.mli` filetypes (ocamlformat formats both).
--- `--name ${INPUT}` tells ocamlformat the source kind from the real filename while it reads stdin;
--- `rootMarkers` gates efm to projects that carry a `.ocamlformat` (ocamlformat requires one).
+-- The ocamlformat efm entry, shared by the `.ml` and `.mli` filetypes. `--name ${INPUT}` tells
+-- ocamlformat the source kind from the real filename while it reads stdin; `rootMarkers` gates efm to
+-- projects that carry a `.ocamlformat` (ocamlformat requires one).
 ---@return table
 local function ocamlformat_entry()
     return {
@@ -38,25 +31,31 @@ local function ocamlformat_entry()
     }
 end
 
----@type table
-local DEFAULTS = {
-    -- Explicit binary paths; each wins over every other resolution strategy.
-    ocaml_path = nil,
-    dune_path = nil,
-    ocaml_lsp_path = nil, -- the `ocamllsp` binary
-    ocamlformat_path = nil,
-    earlybird_path = nil, -- the `ocamlearlybird` debug adapter
-    ocaml_lookup_cmd = nil, -- shell command whose first line is the `ocaml` path
-    -- Version manager for the toolchain: "opam" | false | function(root, tool). Honours a
-    -- project-local `_opam/` switch. Default: the active opam switch (`opam var bin`) → PATH.
-    version_manager = nil,
+---@type LvimLangSpecData
+local DATA = {
+    name = "ocaml",
+    filetypes = { "ocaml", "ocaml.interface", "ocamllex", "menhir", "dune" },
+    root_patterns = { "dune-project", ".git" },
 
-    -- The dune build directory NAME (relative to the project root). Used to default the debugger's
-    -- bytecode prompt (`_build/default/…`).
-    build_dir = "_build",
+    runtimes = {
+        {
+            bin = "ocaml",
+            key = "ocaml",
+            lookup_key = "ocaml_lookup_cmd",
+            require = true,
+            label = "OCaml toolchain",
+            hint = "Install OCaml via opam (`opam switch create <version>`) and put `ocaml` on PATH; "
+                .. "ocaml-lsp needs the switch's compiler.",
+        },
+        {
+            bin = "dune",
+            key = "dune",
+            require = true,
+            label = "dune build system",
+            hint = "Install dune (`opam install dune`) and put it on PATH — it drives build / exec / test.",
+        },
+    },
 
-    -- LSP server catalog. ocaml-lsp is the single server; its options live under `init_options`
-    -- (ocaml-lsp is configured through initializationOptions, not workspace settings).
     lsp = {
         servers = {
             ["ocaml-lsp"] = {
@@ -64,7 +63,6 @@ local DEFAULTS = {
                 bin = "ocamllsp", -- the installed binary differs from the package name
                 filetypes = { "ocaml", "ocaml.interface", "ocamllex", "menhir", "dune" },
                 role = "types", -- completion / hover / definition / rename / inlay hints / format
-                -- ocaml-lsp initializationOptions (not workspace settings).
                 init_options = {
                     codelens = { enable = true },
                     extendedHover = { enable = true },
@@ -78,10 +76,6 @@ local DEFAULTS = {
         default = "ocaml-lsp",
     },
 
-    -- Per-FILETYPE catalog: formatters / linters / debuggers, each with a default config, plus which
-    -- is the `default` (or false = none). ocaml-lsp formats via ocamlformat natively, so the efm
-    -- formatter defaults to `false` (the catalog OFFERS ocamlformat via efm on the `.ml` / `.mli`
-    -- filetypes for users who prefer efm-based formatting; it is gated on a `.ocamlformat` marker).
     ft = {
         ocaml = {
             formatters = { ocamlformat = ocamlformat_entry() },
@@ -101,9 +95,8 @@ local DEFAULTS = {
         dune = { defaults = {} },
     },
 
-    -- Statusline / picker icons (Nerd Font, single-width, all configurable).
     icons = {
-        statusline = "", -- the OCaml marker in the statusline segment (nf-seti-ocaml)
+        statusline = "", -- the OCaml marker in the statusline segment (nf-seti-ocaml)
         test = "󰙨",
         build = "󰜫",
         run = "󰐊",
@@ -112,81 +105,84 @@ local DEFAULTS = {
     },
 }
 
---- Health section for :checkhealth lvim-lang: report whether the OCaml toolchain resolves for the
---- current working directory, and at what version.
----@param h table  the vim.health reporter
----@return nil
-local function health(h)
-    local root = vim.uv.cwd() or "."
-    local report = {
-        { tool = "ocaml", level = "warn", hint = "install OCaml via opam (`opam switch create <version>`)" },
-        { tool = "dune", level = "warn", hint = "install dune (`opam install dune`)" },
-        { tool = "ocaml-lsp", level = "info", hint = "`opam install ocaml-lsp-server` or the mason registry" },
-        { tool = "ocamlformat", level = "info", hint = "`opam install ocamlformat` or the mason registry" },
-        { tool = "opam", level = "info", hint = "install opam (the OCaml package manager)" },
-    }
-    for _, r in ipairs(report) do
-        local path, reason = toolchain.resolve("ocaml", r.tool, root)
-        if path then
-            local ver = toolchain.version("ocaml", r.tool, root)
-            h.ok(("%s: %s%s"):format(r.tool, path, ver and ("  (" .. ver .. ")") or ""))
-        elseif r.level == "warn" then
-            h.warn(("%s not found — %s"):format(r.tool, reason or r.hint))
-        else
-            h.info(("%s not found — %s"):format(r.tool, r.hint))
-        end
-    end
-end
+local spec, defaults = declarative.build(DATA)
 
---- Statusline segment for a root: the OCaml marker + the active run config (if any).
+-- ── EXTEND: OPAM-switch toolchain resolution ────────────────────────────────────────────────────────
+
+--- The `bin` directory of the opam switch active for `root` (`opam var bin`, run IN `root` so a
+--- project-local `_opam/` switch wins over the global one), or nil when opam is unavailable.
 ---@param root string
----@return string
-local function statusline(root)
-    local ic = (config.providers.ocaml and config.providers.ocaml.icons) or {}
-    local parts = { ic.statusline or "" }
-    local rc = require("lvim-lang.core.runcfg").active(root)
-    if rc and rc.name then
-        parts[#parts + 1] = "➤ " .. rc.name
+---@return string|nil
+local function opam_bin_dir(root)
+    if vim.fn.executable("opam") ~= 1 then
+        return nil
     end
-    return table.concat(parts, "  ")
+    local out = vim.system({ "opam", "var", "bin" }, { cwd = root, text = true }):wait()
+    if out.code ~= 0 then
+        return nil
+    end
+    local dir = vim.trim(out.stdout or "")
+    return (dir ~= "" and vim.fn.isdirectory(dir) == 1) and dir or nil
 end
 
----@type LvimLangProvider
-local spec = {
-    name = "ocaml",
-    filetypes = { "ocaml", "ocaml.interface", "ocamllex", "menhir", "dune" },
-    root_patterns = { "dune-project", ".git" },
-    statusline = statusline,
-    toolchain = require("lvim-lang.providers.ocaml.toolchain"),
-    commands = require("lvim-lang.providers.ocaml.commands"),
-    -- lvim-tasks templates (arg-less opam dependency subcommands) — also via :LvimLang deps.
-    tasks = require("lvim-lang.providers.ocaml.deps").templates,
-    --- Surfaced at activation + in :checkhealth: OCaml + dune must be present (ocaml-lsp needs the
-    --- switch's compiler; dune drives build / test).
-    ---@param root string
-    ---@return LvimLangRequirement[]
-    requirements = function(root)
-        return {
-            requirements.tool_present(
-                "ocaml",
-                "ocaml",
-                "OCaml toolchain",
-                "Install OCaml via opam (`opam switch create <version>`) and put `ocaml` on PATH; "
-                    .. "ocaml-lsp needs the switch's compiler.",
-                root
-            ),
-            requirements.tool_present(
-                "ocaml",
-                "dune",
-                "dune build system",
-                "Install dune (`opam install dune`) and put it on PATH — it drives build / exec / test.",
-                root
-            ),
-        }
-    end,
-    health = health,
-}
+--- A resolver for `tool` through the active opam switch. `version_manager` may be "opam" (default),
+--- false to disable, or a function(root, tool) -> path|nil.
+---@param tool string
+---@return fun(root: string): string|nil
+local function via_opam(tool)
+    return function(root)
+        local vm = (config.providers.ocaml or {}).version_manager
+        if vm == false then
+            return nil
+        end
+        if type(vm) == "function" then
+            return vm(root, tool)
+        end
+        local dir = opam_bin_dir(root)
+        if not dir then
+            return nil
+        end
+        local path = vim.fs.joinpath(dir, tool)
+        return vim.fn.executable(path) == 1 and path or nil
+    end
+end
 
-registry.register(spec, DEFAULTS)
+local tc = spec.toolchain.tools
+-- Compiler / build tool: explicit → lookup → the opam switch → PATH.
+tc.ocaml = {
+    { kind = "path", value = detect.explicit("ocaml", "ocaml") },
+    { kind = "path", value = detect.lookup("ocaml", "ocaml_lookup_cmd") },
+    { kind = "path", value = via_opam("ocaml") },
+    { kind = "which", value = "ocaml" },
+}
+tc.dune = {
+    { kind = "path", value = detect.explicit("ocaml", "dune") },
+    { kind = "path", value = via_opam("dune") },
+    { kind = "which", value = "dune" },
+}
+-- The language server (binary `ocamllsp`): explicit → opam switch → mason → PATH.
+tc["ocaml-lsp"] = {
+    { kind = "path", value = detect.explicit("ocaml", "ocaml-lsp") },
+    { kind = "path", value = via_opam("ocamllsp") },
+    { kind = "path", value = detect.in_mason("ocamllsp") },
+    { kind = "which", value = "ocamllsp" },
+}
+-- ocamlformat: explicit → opam switch → mason → PATH.
+tc.ocamlformat = {
+    { kind = "path", value = detect.explicit("ocaml", "ocamlformat") },
+    { kind = "path", value = via_opam("ocamlformat") },
+    { kind = "path", value = detect.in_mason("ocamlformat") },
+    { kind = "which", value = "ocamlformat" },
+}
+-- opam itself (for dependency commands + health); only ever on PATH.
+tc.opam = { { kind = "which", value = "opam" } }
+
+-- The dune build directory NAME (used to default the debugger's bytecode prompt, `_build/default/…`).
+defaults.build_dir = "_build"
+
+spec.commands = require("lvim-lang.providers.ocaml.commands")
+spec.tasks = require("lvim-lang.providers.ocaml.deps").templates
+
+registry.register(spec, defaults)
 
 return spec

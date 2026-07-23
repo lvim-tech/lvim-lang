@@ -1,41 +1,52 @@
--- lvim-lang.providers.go: the Go provider.
--- Assembles the LvimLangProvider spec and self-registers with the core registry on require
--- (lvim-lang.setup loads this module from BUILTIN_PROVIDERS). Built milestone by milestone;
--- G0 wires the toolchain (go/gopls/dlv resolution), a health section and a statusline segment.
--- LSP (gopls), the per-filetype formatter/linter catalog, tasks, DAP (delve) and codegen follow.
+-- lvim-lang.providers.go: the Go provider (base + extend).
+-- Built through the shared factory (core.declarative): a DATA record supplies the common skeleton —
+-- name/filetypes (go / gomod / gowork / gotmpl), the gopls (default) + golangci-lint-langserver (opt-in)
+-- LSP catalog, the per-filetype tool catalog (gofumpt / goimports / … formatters, golangci-lint / revive /
+-- staticcheck linters, delve / go-debug-adapter debuggers), the go toolchain, the requirement, health and
+-- statusline. This module then EXTENDS the returned spec with Go's idiosyncratic parts:
+--   * the version prober is DATA (Go CLIs use the `version` SUBCOMMAND, not `--version`);
+--   * gopls / dlv resolved from the `go install` bin dir (`go env GOBIN` / `GOPATH/bin`) before PATH;
+--   * the on-demand codegen tools (gomodifytags / gotests / impl) seeded into the config;
+--   * the go build/run/test + go mod + delve command surface (providers.go.commands / .tasks / .mod / .dap).
 --
--- CANONICAL per-filetype model: one provider covers several filetypes (go / gomod / gowork /
--- gotmpl); each carries its OWN catalog of formatters / linters / debuggers with sane defaults,
--- while a single LSP server (gopls) attaches to all of them. The whole tool catalog below is
--- DERIVED from the mason registry (languages = Go, categories = Formatter / Linter / DAP);
--- the user just picks a default per filetype (or `false` for none) and may override any setting.
+-- gopls formats Go natively (gofumpt = true) so the efm formatter defaults off. gopls keeps its bespoke
+-- servers/gopls.lua; golangci-lint-langserver (no bespoke file) is served by the factory's generic shim.
 --
 ---@module "lvim-lang.providers.go"
 
-local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
-local toolchain = require("lvim-lang.core.toolchain")
-local requirements = require("lvim-lang.core.requirements")
+local declarative = require("lvim-lang.core.declarative")
+local core_toolchain = require("lvim-lang.core.toolchain")
 
--- Per-language defaults, merged into config.providers.go at registration (users override via
--- setup({ providers = { go = { … } } })).
----@type table
-local DEFAULTS = {
-    -- Explicit binary paths; when set each wins over every other resolution strategy.
-    go_path = nil,
-    gopls_path = nil,
-    dlv_path = nil,
-    -- A shell command whose first output line is the `go` binary path (checked after go_path,
-    -- before the version manager / PATH). Empty by default.
-    go_lookup_cmd = nil,
-    -- Version manager for the `go` toolchain: "mise" | "asdf" | false (ignore) | function(root).
-    -- Honours the project's pinned Go version. Default: try mise then asdf, else PATH.
-    version_manager = nil,
+---@type LvimLangSpecData
+local DATA = {
+    name = "go",
+    filetypes = { "go", "gomod", "gowork", "gotmpl" },
+    root_patterns = { "go.work", "go.mod", ".git" },
 
-    -- LSP server catalog. Every suitable server (mason registry, languages = Go, category = LSP)
-    -- with its default settings; `default` selects which attach — a STRING or a LIST (several LSP
-    -- clients attach to the same buffer, e.g. gopls for types + a linter LSP for diagnostics).
-    -- `role` coordinates overlapping capabilities when more than one server runs.
+    runtime = {
+        bin = "go",
+        key = "go",
+        lookup_key = "go_lookup_cmd",
+        require = true,
+        label = "Go toolchain",
+        hint = "Install Go and put `go` on PATH (or set providers.go.bin_paths.go); gopls needs the go command + GOROOT.",
+    },
+    -- Go CLIs (go / gopls / dlv) use the `version` SUBCOMMAND (not `--version`); take the first line.
+    version = function(bin)
+        local out = vim.fn.systemlist({ bin, "version" })
+        if vim.v.shell_error ~= 0 or type(out) ~= "table" then
+            return nil
+        end
+        for _, line in ipairs(out) do
+            local trimmed = vim.trim(line)
+            if trimmed ~= "" then
+                return trimmed
+            end
+        end
+        return nil
+    end,
+
     lsp = {
         servers = {
             gopls = {
@@ -81,18 +92,12 @@ local DEFAULTS = {
                 mason = "golangci-lint-langserver",
                 filetypes = { "go" },
                 role = "diagnostics", -- alternative to the efm golangci-lint linter
-                -- Requires the golangci-lint binary; its command is set in the server config.
                 settings = {},
             },
         },
         default = "gopls", -- string | string[]; add "golangci-lint-langserver" for LSP-based linting
     },
 
-    -- Per-FILETYPE catalog: formatters / linters / debuggers available for each ft, each with a
-    -- default configuration, plus which one is the `default` (or false = none). Only the CHOSEN
-    -- tools are installed (their mason package is contributed to the installer) and wired (through
-    -- efm-langserver, which routes per filetype). Every entry is fully overridable via
-    -- setup({ providers = { go = { ft = { go = { formatter = "goimports" } } } } }).
     ft = {
         go = {
             formatters = {
@@ -128,13 +133,10 @@ local DEFAULTS = {
                 delve = { mason = "delve", bin = "dlv" },
                 ["go-debug-adapter"] = { mason = "go-debug-adapter" },
             },
-            -- No default efm formatter: gopls formats Go natively (gofumpt = true in its settings),
-            -- so a separate formatter is redundant. The catalog still OFFERS gofumpt/goimports/… for
-            -- users who prefer efm-based formatting (set ft.go.formatter = "goimports", etc.).
+            -- gopls formats Go natively → no default efm formatter; the catalog still OFFERS gofumpt/….
             defaults = { formatter = false, linter = "golangci-lint", debugger = "delve" },
         },
         gomod = {
-            -- go.mod concerns: gopls handles most; golangci-lint's module directives are opt-in.
             linters = {
                 ["golangci-lint"] = {
                     mason = "golangci-lint",
@@ -147,95 +149,85 @@ local DEFAULTS = {
             },
             defaults = { linter = false },
         },
-        gowork = {
-            defaults = {},
-        },
-        gotmpl = {
-            defaults = {},
-        },
+        gowork = { defaults = {} },
+        gotmpl = { defaults = {} },
     },
 
-    -- Codegen tools (invoked as :LvimLang tags/gotests/impl). ON-DEMAND by default — installed the
-    -- first time you run their command (core.ensure). Set `active = true` on any of them to install it
-    -- UPFRONT instead, in the same file-open installer popup as the LSP/formatter/linter/debugger.
-    codegen = {
-        gomodifytags = { mason = "gomodifytags" }, -- add `active = true` to install upfront
-        gotests = { mason = "gotests" },
-        impl = { mason = "impl" },
-    },
-
-    -- Nerd Font icons used in the Go provider's pickers / statusline (all configurable).
     icons = {
         statusline = "󰟓", -- the Go marker in the statusline segment
-        test = "󰙨", -- test runner / result row
-        build = "󰜫", -- build task row
-        run = "󰐊", -- run task row
-        debug = "󰃤", -- debug session row
+        test = "󰙨",
+        build = "󰜫",
+        run = "󰐊",
+        debug = "󰃤",
         mod = "󰏗", -- go.mod / dependency row
         tags = "󰓹", -- struct-tag codegen row
     },
 }
 
---- Health section for :checkhealth lvim-lang: report whether the Go toolchain resolves for the
---- current working directory, and at what version.
----@param h table  the vim.health reporter
----@return nil
-local function health(h)
-    local root = vim.uv.cwd() or "."
-    for _, tool in ipairs({ "go", "gopls", "dlv" }) do
-        local path, reason = toolchain.resolve("go", tool, root)
-        if path then
-            local ver = toolchain.version("go", tool, root)
-            h.ok(("%s: %s%s"):format(tool, path, ver and ("  (" .. ver .. ")") or ""))
-        elseif tool == "go" then
-            h.warn(("go not found — %s"):format(reason or "no strategy matched"))
-        else
-            h.info(("%s not found — installed on demand from the mason registry"):format(tool))
-        end
-    end
-end
+local spec, defaults = declarative.build(DATA)
 
---- Statusline segment for a root: the Go marker + the active run config (if any). Kept minimal
---- until run configs land (G8).
+-- ── EXTEND ─────────────────────────────────────────────────────────────────────────────────────────
+
+--- The directory `go install` drops binaries into: `go env GOBIN`, else `go env GOPATH`/bin.
 ---@param root string
----@return string
-local function statusline(root)
-    local ic = (config.providers.go and config.providers.go.icons) or {}
-    local parts = { ic.statusline or "" }
-    local rc = require("lvim-lang.core.runcfg").active(root)
-    if rc and rc.name then
-        parts[#parts + 1] = "➤ " .. rc.name
+---@return string|nil
+local function go_bin_dir(root)
+    local go = core_toolchain.resolve("go", "go", root)
+    if not go then
+        return nil
     end
-    return table.concat(parts, "  ")
+    local function go_env(key)
+        local out = vim.system({ go, "env", key }, { cwd = root, text = true }):wait()
+        if out.code ~= 0 then
+            return nil
+        end
+        local v = vim.trim(out.stdout or "")
+        return v ~= "" and v or nil
+    end
+    local gobin = go_env("GOBIN")
+    if gobin then
+        return gobin
+    end
+    local gopath = go_env("GOPATH")
+    return gopath and vim.fs.joinpath(gopath, "bin") or nil
 end
 
----@type LvimLangProvider
-local spec = {
-    name = "go",
-    filetypes = { "go", "gomod", "gowork", "gotmpl" },
-    root_patterns = { "go.work", "go.mod", ".git" },
-    statusline = statusline,
-    toolchain = require("lvim-lang.providers.go.toolchain"),
-    commands = require("lvim-lang.providers.go.commands"),
-    -- lvim-tasks templates (arg-less go mod subcommands) — also runnable via :LvimLang mod.
-    tasks = require("lvim-lang.providers.go.mod").templates,
-    --- Surfaced at activation + in :checkhealth: the Go toolchain must be present (gopls needs it).
-    ---@param root string
-    ---@return LvimLangRequirement[]
-    requirements = function(root)
-        return {
-            requirements.tool_present(
-                "go",
-                "go",
-                "Go toolchain",
-                "Install Go and put `go` on PATH; gopls needs the go command + GOROOT.",
-                root
-            ),
-        }
-    end,
-    health = health,
+--- A Go-installed tool `bin` inside the resolved `go install` bin dir, or nil.
+---@param bin string
+---@return fun(root: string): string|nil
+local function in_go_bin(bin)
+    return function(root)
+        local dir = go_bin_dir(root)
+        if not dir then
+            return nil
+        end
+        local path = vim.fs.joinpath(dir, bin)
+        return vim.fn.executable(path) == 1 and path or nil
+    end
+end
+
+local tc = spec.toolchain.tools
+-- gopls / dlv are `go install` binaries: prefer the go bin dir before the mason / PATH fallbacks.
+table.insert(tc.gopls, 2, { kind = "path", value = in_go_bin("gopls") })
+-- Commands resolve the debugger by its BINARY name `dlv` (the ft catalog keys it "delve"); add it.
+tc.dlv = {
+    { kind = "path", value = require("lvim-lang.core.detect").explicit("go", "dlv") },
+    { kind = "path", value = in_go_bin("dlv") },
+    { kind = "which", value = "dlv" },
 }
 
-registry.register(spec, DEFAULTS)
+-- Codegen tools (:LvimLang tags/gotests/impl) — ON-DEMAND by default (installed the first time their
+-- command runs); set `active = true` on any to install it upfront in the file-open installer popup.
+defaults.codegen = {
+    gomodifytags = { mason = "gomodifytags" },
+    gotests = { mason = "gotests" },
+    impl = { mason = "impl" },
+}
+
+spec.commands = require("lvim-lang.providers.go.commands")
+-- lvim-tasks templates (arg-less go mod subcommands) — also runnable via :LvimLang mod.
+spec.tasks = require("lvim-lang.providers.go.mod").templates
+
+registry.register(spec, defaults)
 
 return spec

@@ -1,49 +1,57 @@
--- lvim-lang.providers.elixir: the Elixir provider.
--- Assembles the LvimLangProvider spec and self-registers with the core registry on require
--- (lvim-lang.setup loads this module from BUILTIN_PROVIDERS). Reuses the shared core: the
--- per-filetype catalog (core.catalog), the multi-LSP fan-out (core.lsp.register_catalog), the
--- lvim-tasks runner (core.runner) and on-demand tooling (core.ensure).
+-- lvim-lang.providers.elixir: the Elixir provider (base + extend).
+-- Built through the shared factory (core.declarative): a DATA record supplies the common skeleton —
+-- name/filetypes/root, the elixir-ls (default) + lexical + next-ls LSP catalog, the per-filetype tool
+-- catalog (mix format / credo over efm, the elixir-ls debugger), the elixir toolchain, the requirement,
+-- health and statusline. This module then EXTENDS the returned spec with Elixir's idiosyncratic parts:
+--   * mix / iex resolved from the SELECTED elixir's bin dir (tracking a version-managed install);
+--   * the elixir-ls-debugger binary (a second binary inside the elixir-ls mason package);
+--   * a bin-keyed alias (next-ls' server module resolves by the BINARY `nextls`, not the catalog key);
+--   * the dap tuning + the mix build/run/test command surface (providers.elixir.commands / .dap / .deps).
 --
--- elixir-ls (the ElixirLS language server) is the default; lexical and next-ls are offered as
--- alternatives. All three are mason packages resolved per project. elixir-ls formats natively (it
--- drives `mix format`) and reports credo/dialyzer diagnostics, so the per-filetype efm formatter /
--- linter default to `false` (the LSP owns them); the catalog still OFFERS `mix format` (formatter) and
--- credo (linter) through efm for users who prefer efm-based tooling — and `catalog.lsp_on_attach`
--- hands formatting to efm whenever such a formatter IS selected, so the two never both format the
--- buffer. Debugging rides on the elixir-ls DEBUGGER (a second binary in the elixir-ls mason package),
--- wired in providers.elixir.dap and carried on every server config's `dap` field so it works whichever
--- LSP is chosen. build = `mix compile`; run = `mix run` / `iex -S mix`; ExUnit drives the tests.
+-- The version prober is DATA (elixir / iex print the Erlang/OTP line first — the Elixir/IEx/Mix line is
+-- preferred). elixir-ls / lexical / next-ls keep their bespoke server-config modules.
 --
 ---@module "lvim-lang.providers.elixir"
 
-local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
-local toolchain = require("lvim-lang.providers.elixir.toolchain")
+local declarative = require("lvim-lang.core.declarative")
+local detect = require("lvim-lang.core.detect")
 local core_toolchain = require("lvim-lang.core.toolchain")
-local requirements = require("lvim-lang.core.requirements")
 
----@type table
-local DEFAULTS = {
-    -- Explicit binary paths; when set each wins over every other resolution strategy.
-    elixir_path = nil,
-    mix_path = nil,
-    elixir_ls_path = nil,
-    elixir_ls_debugger_path = nil,
-    -- A shell command whose first output line is the `elixir` binary path (checked after elixir_path,
-    -- before the version manager / PATH). Empty by default.
-    elixir_lookup_cmd = nil,
-    -- Version manager for the runtime: "mise" | "asdf" | false (ignore) | function(root, tool).
-    -- Honours the project's pin (.tool-versions). Default: try mise then asdf (`<mgr> which <tool>`).
-    version_manager = nil,
+---@type LvimLangSpecData
+local DATA = {
+    name = "elixir",
+    filetypes = { "elixir", "eelixir", "heex" },
+    root_patterns = { "mix.exs", ".git" },
 
-    -- Debug adapter tuning.
-    dap = {
-        -- The files the elixir-ls debugger compiles before an ExUnit `test` task runs.
-        test_require_files = { "test/**/test_helper.exs", "test/**/*_test.exs" },
+    runtime = {
+        bin = "elixir",
+        key = "elixir",
+        lookup_key = "elixir_lookup_cmd",
+        require = true,
+        label = "Elixir runtime",
+        hint = "Install Elixir via a version manager (mise / asdf) and pin it with .tool-versions, or set "
+            .. "providers.elixir.bin_paths.elixir; the language server, mix tasks and ExUnit all need it.",
     },
+    -- elixir / iex print the Erlang/OTP line first — prefer the Elixir/IEx/Mix line, else the first line.
+    version = function(bin)
+        local out = vim.fn.systemlist({ bin, "--version" })
+        if vim.v.shell_error ~= 0 or type(out) ~= "table" then
+            return nil
+        end
+        local first
+        for _, line in ipairs(out) do
+            local trimmed = vim.trim(line)
+            if trimmed ~= "" then
+                first = first or trimmed
+                if trimmed:match("^Elixir ") or trimmed:match("^IEx ") or trimmed:match("^Mix ") then
+                    return trimmed
+                end
+            end
+        end
+        return first
+    end,
 
-    -- LSP server catalog. elixir-ls is the default; lexical and next-ls are offered as alternatives —
-    -- set `lsp.server = "lexical"` (or a list) to switch / add. `role` coordinates overlaps.
     lsp = {
         servers = {
             ["elixir-ls"] = {
@@ -51,16 +59,14 @@ local DEFAULTS = {
                 bin = "elixir-ls",
                 filetypes = { "elixir", "eelixir", "heex" },
                 role = "types", -- completion / hover / definition / rename / format / diagnostics
-                -- elixir-ls reads its options from settings under the `elixirLS` key (pushed after
-                -- init) AND init_options (available at startup); the server module injects them per root.
                 settings = {
                     elixirLS = {
-                        dialyzerEnabled = true, -- run dialyzer for extra type diagnostics
+                        dialyzerEnabled = true,
                         dialyzerFormat = "dialyxir_long",
-                        fetchDeps = false, -- do NOT auto-fetch deps on open (run :LvimLang deps get)
+                        fetchDeps = false,
                         enableTestLenses = false,
                         suggestSpecs = true,
-                        mixEnv = "test", -- the MIX_ENV elixir-ls compiles under
+                        mixEnv = "test",
                         autoInsertRequiredAlias = true,
                     },
                 },
@@ -69,31 +75,23 @@ local DEFAULTS = {
                 mason = "lexical",
                 bin = "lexical",
                 filetypes = { "elixir", "eelixir", "heex" },
-                role = "types", -- alternative full server (completion / hover / definition / format)
+                role = "types",
                 settings = {},
             },
             ["next-ls"] = {
                 mason = "next-ls",
                 bin = "nextls",
                 filetypes = { "elixir", "eelixir", "heex" },
-                role = "types", -- alternative full server (elixir-tools' Next LS)
+                role = "types",
                 settings = {},
             },
         },
         default = "elixir-ls",
     },
 
-    -- Per-FILETYPE catalog: formatters / linters for `elixir`, each with an efm config, plus which is
-    -- the `default` (or false = none). elixir-ls formats (via `mix format`) + diagnoses natively, so
-    -- both default to `false`; the catalog still OFFERS `mix format` and credo through efm for users
-    -- who prefer efm-based tooling (set ft.elixir.formatter = "mix_format", ft.elixir.linter =
-    -- "credo"). The elixir-ls DEBUGGER is a mason package (offered for install), wired in
-    -- providers.elixir.dap and carried on the server config.
     ft = {
         elixir = {
             formatters = {
-                -- `mix format -` reads stdin and writes the formatted source to stdout (Elixir 1.13+),
-                -- honouring the project's `.formatter.exs`.
                 mix_format = {
                     efm = {
                         formatCommand = "mix format -",
@@ -103,8 +101,6 @@ local DEFAULTS = {
                 },
             },
             linters = {
-                -- credo's flycheck format is `path:line:col: category: message`; run over stdin so an
-                -- unsaved buffer still lints. Needs the `credo` dependency in the project's mix.exs.
                 credo = {
                     efm = {
                         lintCommand = "mix credo suggest --format=flycheck --read-from-stdin ${INPUT}",
@@ -122,106 +118,59 @@ local DEFAULTS = {
         },
     },
 
-    -- Nerd Font icons used in the Elixir provider's statusline / pickers (all configurable).
     icons = {
         statusline = "", -- the Elixir marker in the statusline segment (nf-seti-elixir)
-        test = "󰙨", -- test runner / result row
-        build = "󰜫", -- mix compile / build task row
-        run = "󰐊", -- run task row
-        debug = "󰃤", -- debug session row
+        test = "󰙨",
+        build = "󰜫",
+        run = "󰐊",
+        debug = "󰃤",
         deps = "󰏗", -- hex / mix dependency row
     },
 }
 
---- Health section for :checkhealth lvim-lang: whether the Elixir toolchain (runtime + servers +
---- debugger) resolves for the current working directory, and at what version.
----@param h table  the vim.health reporter
----@return nil
-local function health(h)
-    local root = vim.uv.cwd() or "."
+local spec, defaults = declarative.build(DATA)
 
-    local elixir, reason = core_toolchain.resolve("elixir", "elixir", root)
-    if elixir then
-        local ver = core_toolchain.version("elixir", "elixir", root)
-        h.ok(("elixir: %s%s"):format(elixir, ver and ("  (" .. ver .. ")") or ""))
-    else
-        h.warn(
-            ("elixir not found — %s"):format(
-                reason or "install Elixir (mise / asdf) or set providers.elixir.elixir_path"
-            )
-        )
-    end
+-- ── EXTEND ─────────────────────────────────────────────────────────────────────────────────────────
 
-    -- mix + iex ship with elixir; the language servers / debugger are mason packages resolved on demand.
-    for _, tool in ipairs({ "mix", "iex" }) do
-        local path = core_toolchain.resolve("elixir", tool, root)
-        if path then
-            local ver = core_toolchain.version("elixir", tool, root)
-            h.ok(("%s: %s%s"):format(tool, path, ver and ("  (" .. ver .. ")") or ""))
-        else
-            h.info(("%s not found — ships with elixir; install the Elixir runtime"):format(tool))
+--- A tool `bin` inside the SELECTED elixir's bin dir (where mix / iex live beside `elixir`):
+--- `<dirname(elixir)>/<bin>`. Tracks a version-managed elixir's own tools.
+---@param bin string
+---@return fun(root: string): string|nil
+local function in_elixir_bin(bin)
+    return function(root)
+        local elixir = core_toolchain.resolve("elixir", "elixir", root)
+        if not elixir then
+            return nil
         end
-    end
-
-    for _, tool in ipairs({ "elixir-ls", "lexical", "nextls" }) do
-        local path = core_toolchain.resolve("elixir", tool, root)
-        if path then
-            h.ok(("%s: %s"):format(tool, path))
-        else
-            h.info(("%s not found — installed on demand from the mason registry"):format(tool))
-        end
-    end
-
-    if core_toolchain.resolve("elixir", "elixir-ls-debugger", root) then
-        h.ok("elixir-ls-debugger: present (the elixir-ls mason package's debug adapter)")
-    else
-        h.info("elixir-ls-debugger not found — installed with the elixir-ls mason package (debugging)")
+        local path = vim.fs.joinpath(vim.fs.dirname(elixir), bin)
+        return vim.fn.executable(path) == 1 and path or nil
     end
 end
 
---- Statusline segment for a root: the Elixir marker + the active run config (if any).
----@param root string
----@return string
-local function statusline(root)
-    local ic = (config.providers.elixir and config.providers.elixir.icons) or {}
-    local parts = { ic.statusline or "" }
-    local rc = require("lvim-lang.core.runcfg").active(root)
-    if rc and rc.name then
-        parts[#parts + 1] = "➤ " .. rc.name
-    end
-    return table.concat(parts, "  ")
-end
-
----@type LvimLangProvider
-local spec = {
-    name = "elixir",
-    filetypes = { "elixir", "eelixir", "heex" },
-    root_patterns = { "mix.exs", ".git" },
-    statusline = statusline,
-    toolchain = toolchain,
-    commands = require("lvim-lang.providers.elixir.commands"),
-    -- lvim-tasks templates (arg-less mix dependency subcommands) — also via :LvimLang deps.
-    tasks = require("lvim-lang.providers.elixir.deps").templates,
-    --- Surfaced at activation + in :checkhealth: an Elixir runtime must be present (the language
-    --- server, mix tasks and ExUnit all run on it). Elixir is the user's OWN runtime — not
-    --- lvim-pkg-installed.
-    ---@param root string
-    ---@return LvimLangRequirement[]
-    requirements = function(root)
-        return {
-            requirements.tool_present(
-                "elixir",
-                "elixir",
-                "Elixir runtime",
-                "Install Elixir via a version manager (mise / asdf) and pin it with .tool-versions, or set "
-                    .. "providers.elixir.elixir_path; the language server, mix tasks and ExUnit all need it.",
-                root
-            ),
-        }
-    end,
-    health = health,
+local tc = spec.toolchain.tools
+-- mix / iex ship with elixir: config → the selected elixir's bin → version manager → PATH.
+tc.mix = {
+    { kind = "path", value = detect.explicit("elixir", "mix") },
+    { kind = "path", value = in_elixir_bin("mix") },
+    { kind = "path", value = detect.via_version_manager("elixir", "mix") },
+    { kind = "which", value = "mix" },
 }
+tc.iex = {
+    { kind = "path", value = in_elixir_bin("iex") },
+    { kind = "path", value = detect.via_version_manager("elixir", "iex") },
+    { kind = "which", value = "iex" },
+}
+-- The elixir-ls debug adapter — a second binary in the elixir-ls mason package (commands resolve it by name).
+tc["elixir-ls-debugger"] = detect.mason_strategies("elixir", "elixir-ls-debugger")
+-- next-ls' server module resolves by the BINARY name — alias it onto the factory's server-key strategy.
+tc.nextls = tc["next-ls"]
 
-registry.register(spec, DEFAULTS)
+-- Debug adapter tuning: the files the elixir-ls debugger compiles before an ExUnit `test` task runs.
+defaults.dap = { test_require_files = { "test/**/test_helper.exs", "test/**/*_test.exs" } }
+
+spec.commands = require("lvim-lang.providers.elixir.commands")
+spec.tasks = require("lvim-lang.providers.elixir.deps").templates
+
+registry.register(spec, defaults)
 
 return spec

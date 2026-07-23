@@ -1,51 +1,61 @@
--- lvim-lang.providers.zig: the Zig provider.
--- Assembles the LvimLangProvider spec and self-registers with the core registry on require
--- (lvim-lang.setup loads this module from BUILTIN_PROVIDERS). Zig is a compiled systems language
--- served by ONE self-contained binary: `zig` is the compiler, build system (`zig build`), test
--- runner (`zig test` / `zig build test`) AND formatter (`zig fmt` — a subcommand, NOT a separate
--- tool). The LSP is zls; debugging is lldb-dap (LLVM's DAP adapter over the native DWARF binaries).
+-- lvim-lang.providers.zig: the Zig provider (base + extend).
+-- Built through the shared factory (core.declarative): a DATA record supplies the common skeleton —
+-- name/filetypes/root, the zls catalog, the per-filetype tool catalog (zig fmt formatter + lldb-dap /
+-- codelldb debuggers), the zig toolchain, the requirement, health and statusline. Zig is a compiled
+-- systems language served by ONE binary — `zig` is the compiler, build system, test runner AND formatter
+-- (`zig fmt` is a subcommand, not a separate tool). This module then EXTENDS the returned spec with Zig's
+-- idiosyncratic parts:
+--   * the version prober is DATA (`zig version` is a SUBCOMMAND, while zls / lldb-dap use `--version`);
+--   * the build output dir (used to default the debugger's executable prompt);
+--   * the project-shape-adaptive command surface (build.zig project vs single file — providers.zig.commands
+--     / .tasks / .test / .dap / .deps).
 --
--- Reuses the Rust/C++ core: the canonical per-filetype catalog (core.catalog), the multi-LSP fan-out
--- (core.lsp.register_catalog) and on-demand tooling (core.ensure). Because zls formats natively (it
--- shells out to `zig fmt`) the default formatter is `false` — formatting comes from the LSP; `zig
--- fmt` is still OFFERED as an efm formatter a user can select. There is no default linter (zls
--- surfaces compile diagnostics). The Zig toolchain itself is the user's own (via mise / asdf / PATH);
--- only zls and lldb-dap are mason packages.
+-- zls formats natively (it shells out to `zig fmt`) so the efm formatter defaults off. zls keeps its
+-- bespoke servers/zls.lua (it points zls at the resolved `zig` via zig_exe_path — a real file wins).
 --
 ---@module "lvim-lang.providers.zig"
 
-local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
-local toolchain = require("lvim-lang.providers.zig.toolchain")
-local core_toolchain = require("lvim-lang.core.toolchain")
-local requirements = require("lvim-lang.core.requirements")
+local declarative = require("lvim-lang.core.declarative")
 
----@type table
-local DEFAULTS = {
-    -- Explicit binary paths; each wins over every other resolution strategy.
-    zig_path = nil,
-    zls_path = nil,
-    lldb_dap_path = nil,
-    codelldb_path = nil,
-    zig_lookup_cmd = nil, -- shell command whose first line is the `zig` path
-    -- Version manager for the toolchain: "mise" | "asdf" | false | function(root).
-    -- Honours a project's .tool-versions / mise.toml. Default: mise → asdf → PATH.
-    version_manager = nil,
+---@type LvimLangSpecData
+local DATA = {
+    name = "zig",
+    filetypes = { "zig", "zir" },
+    root_patterns = { "build.zig", "build.zig.zon", ".git" },
 
-    -- The Zig build output dir (relative to the project root), where `zig build` drops binaries.
-    -- Used to default the debugger's "path to executable" prompt.
-    bin_dir = "zig-out/bin",
+    runtime = {
+        bin = "zig",
+        key = "zig",
+        lookup_key = "zig_lookup_cmd",
+        require = true,
+        label = "Zig toolchain",
+        hint = "Install the Zig toolchain (https://ziglang.org/download) and put `zig` on PATH (or manage it "
+            .. "with mise / asdf). `zig fmt` ships with it; zls resolves the standard library through it.",
+    },
+    -- The `zig` binary answers `zig version` (a SUBCOMMAND); zls / lldb-dap use `--version`.
+    version = function(bin)
+        local base = vim.fs.basename(bin)
+        local argv = (base:match("zig") and not base:match("zls")) and { bin, "version" } or { bin, "--version" }
+        local out = vim.fn.systemlist(argv)
+        if vim.v.shell_error ~= 0 or type(out) ~= "table" then
+            return nil
+        end
+        for _, line in ipairs(out) do
+            local trimmed = vim.trim(line)
+            if trimmed ~= "" then
+                return trimmed
+            end
+        end
+        return nil
+    end,
 
-    -- LSP server catalog. zls is the single server. It formats Zig natively (it invokes `zig fmt`)
-    -- and surfaces compile diagnostics, so no separate efm formatter/linter runs by default.
     lsp = {
         servers = {
             zls = {
                 mason = "zls",
                 filetypes = { "zig" },
                 role = "types", -- completion / hover / definition / rename / inlay hints / format
-                -- zls is configured through workspace settings under the `zls` key (pushed after init
-                -- via didChangeConfiguration). Overridable / extendable via setup().
                 settings = {
                     zls = {
                         enable_build_on_save = true, -- run `zig build` on save for richer diagnostics
@@ -60,13 +70,11 @@ local DEFAULTS = {
         default = "zls",
     },
 
-    -- Per-filetype catalog. `zig fmt` is offered as an efm formatter (opt-in — zls formats by
-    -- default). lldb-dap is the default debugger; codelldb is an alternative.
     ft = {
         zig = {
             formatters = {
-                -- The formatter ships inside the `zig` binary. `zig fmt --stdin` reads stdin and
-                -- writes the formatted source to stdout (efm's format contract).
+                -- The formatter ships inside the `zig` binary; `zig fmt --stdin` reads stdin and writes
+                -- the formatted source to stdout (efm's format contract). Opt-in — zls formats by default.
                 ["zig-fmt"] = { efm = { formatCommand = "zig fmt --stdin", formatStdin = true } },
             },
             linters = {},
@@ -74,15 +82,12 @@ local DEFAULTS = {
                 ["lldb-dap"] = { mason = "lldb-dap" },
                 codelldb = { mason = "codelldb" },
             },
-            -- zls formats (via `zig fmt`) and lints (compile diagnostics), so formatter/linter default
-            -- to false; lldb-dap is the default debugger.
             defaults = { formatter = false, linter = false, debugger = "lldb-dap" },
         },
     },
 
-    -- Statusline / picker icons (Nerd Font, single-width, all configurable).
     icons = {
-        statusline = "", -- the Zig marker in the statusline segment
+        statusline = "", -- the Zig marker in the statusline segment
         test = "󰙨",
         build = "󰜫",
         run = "󰐊",
@@ -91,80 +96,17 @@ local DEFAULTS = {
     },
 }
 
---- Health section for :checkhealth lvim-lang: report whether the Zig toolchain resolves for the
---- current working directory, and at what version.
----@param h table  the vim.health reporter
----@return nil
-local function health(h)
-    local root = vim.uv.cwd() or "."
-    local report = {
-        {
-            tool = "zig",
-            level = "warn",
-            hint = "install the Zig toolchain (https://ziglang.org/download) and put `zig` on PATH (or via mise / asdf)",
-        },
-        {
-            tool = "zls",
-            level = "info",
-            hint = "install it via the mason registry (:LvimInstaller) — the Zig language server",
-        },
-        { tool = "lldb-dap", level = "info", hint = "the mason registry — the LLDB debug adapter (or codelldb)" },
-    }
-    for _, r in ipairs(report) do
-        local path = core_toolchain.resolve("zig", r.tool, root)
-        if path then
-            local ver = core_toolchain.version("zig", r.tool, root)
-            h.ok(("%s: %s%s"):format(r.tool, path, ver and ("  (" .. ver .. ")") or ""))
-        elseif r.level == "warn" then
-            h.warn(("%s not found — %s"):format(r.tool, r.hint))
-        else
-            h.info(("%s not found — %s"):format(r.tool, r.hint))
-        end
-    end
-end
+local spec, defaults = declarative.build(DATA)
 
---- Statusline segment for a root: the Zig marker + the active run config (if any).
----@param root string
----@return string
-local function statusline(root)
-    local ic = (config.providers.zig and config.providers.zig.icons) or {}
-    local parts = { ic.statusline or "" }
-    local rc = require("lvim-lang.core.runcfg").active(root)
-    if rc and rc.name then
-        parts[#parts + 1] = "➤ " .. rc.name
-    end
-    return table.concat(parts, "  ")
-end
+-- ── EXTEND ─────────────────────────────────────────────────────────────────────────────────────────
 
----@type LvimLangProvider
-local spec = {
-    name = "zig",
-    filetypes = { "zig", "zir" },
-    root_patterns = { "build.zig", "build.zig.zon", ".git" },
-    statusline = statusline,
-    toolchain = toolchain,
-    commands = require("lvim-lang.providers.zig.commands"),
-    -- lvim-tasks templates (arg-less package commands) — also via :LvimLang deps.
-    tasks = require("lvim-lang.providers.zig.deps").templates,
-    --- Surfaced at activation + in :checkhealth: the Zig toolchain must be present (zls needs it to
-    --- resolve the standard library, build, format and produce diagnostics).
-    ---@param root string
-    ---@return LvimLangRequirement[]
-    requirements = function(root)
-        return {
-            requirements.tool_present(
-                "zig",
-                "zig",
-                "Zig toolchain",
-                "Install the Zig toolchain (https://ziglang.org/download) and put `zig` on PATH (or manage it "
-                    .. "with mise / asdf). `zig fmt` ships with it; zls resolves the standard library through it.",
-                root
-            ),
-        }
-    end,
-    health = health,
-}
+-- The Zig build output dir (relative to the project root), where `zig build` drops binaries — used to
+-- default the debugger's "path to executable" prompt.
+defaults.bin_dir = "zig-out/bin"
 
-registry.register(spec, DEFAULTS)
+spec.commands = require("lvim-lang.providers.zig.commands")
+spec.tasks = require("lvim-lang.providers.zig.deps").templates
+
+registry.register(spec, defaults)
 
 return spec

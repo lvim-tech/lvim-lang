@@ -1,49 +1,49 @@
--- lvim-lang.providers.ruby: the Ruby provider.
--- Assembles the LvimLangProvider spec and self-registers with the core registry on require
--- (lvim-lang.setup loads this module from BUILTIN_PROVIDERS). Reuses the shared core: the
--- per-filetype catalog (core.catalog), the multi-LSP fan-out (core.lsp.register_catalog), the
--- lvim-tasks runner (core.runner) and on-demand tooling (core.ensure).
+-- lvim-lang.providers.ruby: the Ruby provider (base + extend).
+-- Built through the shared factory (core.declarative): a DATA record supplies the common skeleton —
+-- name/filetypes/root, the ruby-lsp (default) + solargraph (opt-in) LSP catalog, the per-filetype tool
+-- catalog (rubocop / standardrb formatters + linters), requirements, health and statusline.
+-- `project_dirs = { "bin" }` makes every mason tool prefer a project binstub. This module then EXTENDS
+-- the returned spec with Ruby's rich, ecosystem-specific resolution — the part that is NOT common data:
+--   * the interpreter through FIVE managers (rbenv / chruby / rvm / mise / asdf), chruby & rvm having no
+--     resolver CLI so the project's `.ruby-version` selects a `~/.rubies` / `~/.rvm/rubies` install;
+--   * gem tools (ruby-lsp / solargraph / rubocop) additionally from the SELECTED ruby's gem-bin dir, and
+--     the ruby-shipped bundle / rake / rspec / rdbg (the `debug` gem — not mason) resolved the same way;
+--   * the run / rake / RSpec / rdbg command surface (providers.ruby.commands / .dap / .deps).
 --
--- ruby-lsp (Shopify's language server) is the default; solargraph is offered as the alternative. Both
--- are gems (also mason packages) resolved per project — a project's bundled copy wins over the shared
--- mason one. ruby-lsp integrates rubocop for formatting + diagnostics NATIVELY when rubocop is in the
--- bundle, so the per-filetype efm formatter / linter default to `false` (the LSP owns them); the
--- catalog still OFFERS rubocop (and standardrb) through efm for users who prefer efm-based tooling —
--- and `catalog.lsp_on_attach` hands formatting to efm whenever such a formatter IS selected, so the
--- two never both format the buffer. Debugging is rdbg (the `debug` gem — `bundle add debug`, NOT a
--- mason package), wired as a `server` adapter in providers.ruby.dap. build has no meaning for Ruby;
--- run executes the current file, rake runs tasks, and RSpec drives the test commands.
+-- The reusable builders (explicit / lookup / project-local / mason / PATH) come from core.detect via the
+-- factory; only the Ruby-specific resolvers live here. ruby-lsp / solargraph keep their bespoke
+-- servers/*.lua modules (a real file wins over the generic shim).
 --
 ---@module "lvim-lang.providers.ruby"
 
 local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
-local toolchain = require("lvim-lang.providers.ruby.toolchain")
+local declarative = require("lvim-lang.core.declarative")
+local detect = require("lvim-lang.core.detect")
 local core_toolchain = require("lvim-lang.core.toolchain")
-local requirements = require("lvim-lang.core.requirements")
 
----@type table
-local DEFAULTS = {
-    -- Explicit binary paths; when set each wins over every other resolution strategy.
-    ruby_path = nil,
-    bundle_path = nil,
-    rubocop_path = nil,
-    ruby_lsp_path = nil,
-    rdbg_path = nil,
-    -- A shell command whose first output line is the `ruby` binary path (checked after ruby_path,
-    -- before the version manager / PATH). Empty by default.
-    ruby_lookup_cmd = nil,
-    -- Version manager for the interpreter: "mise" | "asdf" | "rbenv" | "chruby" | "rvm" | false
-    -- (ignore) | function(root). Honours the project's pin (.ruby-version / .tool-versions).
-    -- Default: try mise, asdf, rbenv (each `<mgr> which ruby`), then chruby / rvm (~/.rubies).
-    version_manager = nil,
+-- Explicit overrides live under `bin_paths`; `ruby_lookup_cmd` holds an optional path-printing lookup.
+---@type LvimLangSpecData
+local DATA = {
+    name = "ruby",
+    filetypes = { "ruby", "eruby" },
+    root_patterns = { "Gemfile", "Rakefile", ".ruby-version", ".git" },
 
-    -- The rspec command for `:LvimLang debug-test` when NOT auto-detected (normally "bundle exec
-    -- rspec" in a bundled project, else "rspec"); set to force one.
-    debug_rspec_command = nil,
+    -- ruby is the user's own runtime (required); its resolution is overridden in the extend to honour the
+    -- Ruby version managers. The generic strategy the factory builds here is replaced below.
+    runtime = {
+        bin = "ruby",
+        key = "ruby",
+        lookup_key = "ruby_lookup_cmd",
+        require = true,
+        label = "Ruby runtime",
+        hint = "Install Ruby via a version manager (rbenv / rvm / chruby / asdf / mise) and pin it with "
+            .. ".ruby-version, or set providers.ruby.bin_paths.ruby; the language server and tools need it.",
+    },
 
-    -- LSP server catalog. ruby-lsp is the default; solargraph is offered as the alternative — set
-    -- `lsp.server = "solargraph"` (or a list) to switch / add. `role` coordinates overlaps.
+    -- A project that ran `bundle binstubs` (or ships bin/rubocop, bin/rspec) is preferred over a global.
+    project_dirs = { "bin" },
+
     lsp = {
         servers = {
             ["ruby-lsp"] = {
@@ -51,8 +51,6 @@ local DEFAULTS = {
                 bin = "ruby-lsp",
                 filetypes = { "ruby", "eruby" },
                 role = "types", -- completion / hover / definition / rename / format / diagnostics
-                -- ruby-lsp reads its options from init_options (formatter / linters / enabled
-                -- features); the server module injects the resolved values per root.
                 init_options = {
                     formatter = "auto", -- "auto" picks rubocop/syntax_tree from the bundle; "none" to disable
                     linters = {}, -- e.g. { "rubocop" } — empty = auto-detect from the bundle
@@ -97,18 +95,11 @@ local DEFAULTS = {
         default = "ruby-lsp",
     },
 
-    -- Per-FILETYPE catalog: formatters / linters for `ruby`, each with an efm config, plus which is
-    -- the `default` (or false = none). ruby-lsp formats + diagnoses natively (via rubocop in the
-    -- bundle), so both default to `false`; the catalog still OFFERS rubocop and standardrb for users
-    -- who prefer efm-based tooling (set ft.ruby.formatter = "rubocop", ft.ruby.linter = "rubocop").
-    -- No efm-installed debugger: rdbg comes from the `debug` gem (`bundle add debug`), wired in
-    -- providers.ruby.dap — so `debuggers` is empty and the DAP adapter rides on the ruby-lsp server.
     ft = {
         ruby = {
             formatters = {
                 rubocop = {
                     mason = "rubocop",
-                    -- Autocorrect on stdin: corrected source to stdout, diagnostics to stderr.
                     efm = {
                         formatCommand = "rubocop --stdin ${INPUT} --auto-correct-all --stderr --format quiet",
                         formatStdin = true,
@@ -142,113 +133,171 @@ local DEFAULTS = {
                 },
             },
             debuggers = {},
+            -- ruby-lsp formats + diagnoses natively (rubocop in the bundle) → both default false; the
+            -- catalog still OFFERS rubocop / standardrb over efm.
             defaults = { formatter = false, linter = false, debugger = false },
         },
     },
 
-    -- Nerd Font icons used in the Ruby provider's statusline / pickers (all configurable).
     icons = {
         statusline = "", -- the Ruby marker in the statusline segment (nf-dev-ruby)
-        test = "󰙨", -- test runner / result row
-        build = "󰜫", -- rake / build task row
-        run = "󰐊", -- run task row
-        debug = "󰃤", -- debug session row
+        test = "󰙨",
+        build = "󰜫",
+        run = "󰐊",
+        debug = "󰃤",
         deps = "󰏗", -- gem / bundle dependency row
     },
 }
 
---- Health section for :checkhealth lvim-lang: whether the Ruby toolchain (interpreter + servers +
---- tools) resolves for the current working directory, and at what version.
----@param h table  the vim.health reporter
----@return nil
-local function health(h)
-    local root = vim.uv.cwd() or "."
+local spec, defaults = declarative.build(DATA)
 
-    local ruby, reason = core_toolchain.resolve("ruby", "ruby", root)
-    if ruby then
-        local ver = core_toolchain.version("ruby", "ruby", root)
-        h.ok(("ruby: %s%s"):format(ruby, ver and ("  (" .. ver .. ")") or ""))
-    else
-        h.warn(
-            ("ruby not found — %s"):format(
-                reason or "install Ruby (rbenv/rvm/chruby/asdf/mise) or set providers.ruby.ruby_path"
-            )
-        )
-    end
+-- ── EXTEND: Ruby's ecosystem-specific toolchain resolution ──────────────────────────────────────────
 
-    -- bundle + rake ship with ruby; ruby-lsp / rubocop are gems (or mason) resolved on demand.
-    for _, tool in ipairs({ "bundle", "rake" }) do
-        local path = core_toolchain.resolve("ruby", tool, root)
-        if path then
-            h.ok(("%s: %s"):format(tool, path))
-        else
-            h.info(("%s not found — install it into the active ruby"):format(tool))
-        end
-    end
-    for _, tool in ipairs({ "ruby-lsp", "rubocop" }) do
-        local path = core_toolchain.resolve("ruby", tool, root)
-        if path then
-            h.ok(("%s: %s"):format(tool, path))
-        else
-            h.info(
-                ("%s not found — installed on demand from the mason registry (or `gem install %s`)"):format(
-                    tool,
-                    tool
-                )
-            )
-        end
-    end
-
-    -- rdbg is the `debug` gem's binary — not mason; advisory only.
-    if core_toolchain.resolve("ruby", "rdbg", root) then
-        h.ok("rdbg: present (the `debug` gem)")
-    else
-        h.info("rdbg not found — debugging needs the `debug` gem (`bundle add debug`)")
-    end
+--- The ruby config block.
+---@return table
+local function opts()
+    return config.providers.ruby or {}
 end
 
---- Statusline segment for a root: the Ruby marker + the active run config (if any).
+--- The `<name>` from the project's `.ruby-version` (e.g. "3.3.4" / "ruby-3.3.4"), trimmed, or nil.
 ---@param root string
----@return string
-local function statusline(root)
-    local ic = (config.providers.ruby and config.providers.ruby.icons) or {}
-    local parts = { ic.statusline or "" }
-    local rc = require("lvim-lang.core.runcfg").active(root)
-    if rc and rc.name then
-        parts[#parts + 1] = "➤ " .. rc.name
+---@return string|nil
+local function pinned_version(root)
+    local path = vim.fs.joinpath(root, ".ruby-version")
+    if vim.fn.filereadable(path) ~= 1 then
+        return nil
     end
-    return table.concat(parts, "  ")
+    for _, line in ipairs(vim.fn.readfile(path) or {}) do
+        local trimmed = vim.trim(line)
+        if trimmed ~= "" then
+            return trimmed
+        end
+    end
+    return nil
 end
 
----@type LvimLangProvider
-local spec = {
-    name = "ruby",
-    filetypes = { "ruby", "eruby" },
-    root_patterns = { "Gemfile", "Rakefile", ".ruby-version", ".git" },
-    statusline = statusline,
-    toolchain = toolchain,
-    commands = require("lvim-lang.providers.ruby.commands"),
-    -- lvim-tasks templates (arg-less bundler subcommands) — also runnable via :LvimLang deps.
-    tasks = require("lvim-lang.providers.ruby.deps").templates,
-    --- Surfaced at activation + in :checkhealth: a Ruby interpreter must be present (ruby-lsp and the
-    --- rubocop / rspec / rake gems all run on it). Ruby is the user's OWN runtime — not lvim-pkg-installed.
-    ---@param root string
-    ---@return LvimLangRequirement[]
-    requirements = function(root)
-        return {
-            requirements.tool_present(
-                "ruby",
-                "ruby",
-                "Ruby runtime",
-                "Install Ruby via a version manager (rbenv / rvm / chruby / asdf / mise) and pin it with "
-                    .. ".ruby-version, or set providers.ruby.ruby_path; the language server and tools need it.",
-                root
-            ),
-        }
-    end,
-    health = health,
+--- chruby / rvm have no resolver CLI, so the selected ruby is found on disk: the project's
+--- `.ruby-version` name matched against `~/.rubies/<name>/bin/ruby` / `~/.rvm/rubies/<name>/bin/ruby`
+--- (bare "3.3.4" or prefixed "ruby-3.3.4").
+---@param root string
+---@return string|nil
+local function via_rubies_dir(root)
+    local ver = pinned_version(root)
+    if not ver then
+        return nil
+    end
+    local home = vim.env.HOME or vim.uv.os_homedir()
+    if not home then
+        return nil
+    end
+    local names = { ver }
+    if not ver:match("^ruby%-") then
+        names[#names + 1] = "ruby-" .. ver
+    end
+    for _, r in ipairs({ vim.fs.joinpath(home, ".rubies"), vim.fs.joinpath(home, ".rvm", "rubies") }) do
+        for _, name in ipairs(names) do
+            local path = vim.fs.joinpath(r, name, "bin", "ruby")
+            if vim.fn.executable(path) == 1 then
+                return path
+            end
+        end
+    end
+    return nil
+end
+
+--- Resolve `ruby` through the configured manager, honouring the project pin: mise / asdf / rbenv via
+--- `<mgr> which ruby`, chruby / rvm via their rubies dir. `version_manager` may name one, be false, or
+--- be a function(root) -> path|nil.
+---@param root string
+---@return string|nil
+local function ruby_vm(root)
+    local vm = opts().version_manager
+    if vm == false then
+        return nil
+    end
+    if type(vm) == "function" then
+        return vm(root)
+    end
+    local managers = type(vm) == "string" and { vm } or { "mise", "asdf", "rbenv", "chruby", "rvm" }
+    for _, mgr in ipairs(managers) do
+        if mgr == "chruby" or mgr == "rvm" then
+            local path = via_rubies_dir(root)
+            if path then
+                return path
+            end
+        elseif vim.fn.executable(mgr) == 1 then
+            local out = vim.system({ mgr, "which", "ruby" }, { cwd = root, text = true }):wait()
+            if out.code == 0 then
+                local path = vim.trim(out.stdout or "")
+                if path ~= "" and vim.fn.executable(path) == 1 then
+                    return path
+                end
+            end
+        end
+    end
+    return nil
+end
+
+--- A gem tool `bin` inside the SELECTED ruby's bin dir (where `gem install` drops executables):
+--- `<dirname(ruby)>/<bin>`. Tracks a version-managed ruby's own gems.
+---@param bin string
+---@return fun(root: string): string|nil
+local function in_ruby_bin(bin)
+    return function(root)
+        local ruby = core_toolchain.resolve("ruby", "ruby", root)
+        if not ruby then
+            return nil
+        end
+        local path = vim.fs.joinpath(vim.fs.dirname(ruby), bin)
+        return vim.fn.executable(path) == 1 and path or nil
+    end
+end
+
+local tc = spec.toolchain.tools
+-- Interpreter: explicit → lookup → the five version managers → PATH (replaces the generic strategy).
+tc.ruby = {
+    { kind = "path", value = detect.explicit("ruby", "ruby") },
+    { kind = "path", value = detect.lookup("ruby", "ruby_lookup_cmd") },
+    { kind = "path", value = ruby_vm },
+    { kind = "which", value = "ruby" },
+}
+-- Gem-provided servers + rubocop: insert the selected ruby's gem-bin just before the mason fallback
+-- (the factory left explicit → binstub → mason → PATH).
+for _, key in ipairs({ "ruby-lsp", "solargraph", "rubocop" }) do
+    if tc[key] then
+        table.insert(tc[key], #tc[key], { kind = "path", value = in_ruby_bin(key) })
+    end
+end
+-- ruby-shipped / gem tools the commands invoke (not in the install union): binstub → gem-bin → PATH.
+tc.bundle = {
+    { kind = "path", value = detect.explicit("ruby", "bundle") },
+    { kind = "path", value = in_ruby_bin("bundle") },
+    { kind = "which", value = "bundle" },
+}
+tc.rake = {
+    { kind = "path", value = detect.in_project("bin", "rake") },
+    { kind = "path", value = in_ruby_bin("rake") },
+    { kind = "which", value = "rake" },
+}
+tc.rspec = {
+    { kind = "path", value = detect.in_project("bin", "rspec") },
+    { kind = "path", value = in_ruby_bin("rspec") },
+    { kind = "which", value = "rspec" },
+}
+tc.rdbg = {
+    { kind = "path", value = detect.explicit("ruby", "rdbg") },
+    { kind = "path", value = detect.in_project("bin", "rdbg") },
+    { kind = "path", value = in_ruby_bin("rdbg") },
+    { kind = "which", value = "rdbg" },
 }
 
-registry.register(spec, DEFAULTS)
+-- The rspec command for :LvimLang debug-test when not auto-detected (else "bundle exec rspec" / "rspec").
+defaults.debug_rspec_command = nil
+
+-- The run / rake / RSpec / rdbg command surface + arg-less bundler templates.
+spec.commands = require("lvim-lang.providers.ruby.commands")
+spec.tasks = require("lvim-lang.providers.ruby.deps").templates
+
+registry.register(spec, defaults)
 
 return spec

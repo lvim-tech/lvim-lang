@@ -1,35 +1,30 @@
--- lvim-lang.providers.haskell: the Haskell provider.
--- Assembles the LvimLangProvider spec and self-registers with the core registry on require
--- (lvim-lang.setup loads this module from BUILTIN_PROVIDERS). Reuses the Rust/Java/Go core: the
--- per-filetype catalog (core.catalog), the LSP fan-out (core.lsp.register_catalog), the lvim-tasks
--- runner (core.runner) and on-demand tooling (core.ensure).
+-- lvim-lang.providers.haskell: the Haskell provider (base + extend).
+-- Built through the shared factory (core.declarative): a DATA record supplies the common skeleton —
+-- name/filetypes (haskell + literate lhaskell), the HLS catalog, the per-filetype tool catalog (fourmolu
+-- / ormolu / hlint / haskell-debug-adapter), the ghc requirement, health and statusline. This module then
+-- EXTENDS the returned spec with Haskell's idiosyncratic toolchain resolution + conditional requirements:
+--   * ghc / cabal / stack / HLS resolved through GHCup (`ghcup whereis <component>`) → mise/asdf →
+--     the GHCup bin dir → PATH — the wrapper HLS binary picks the right build for the project's GHC;
+--   * a CONDITIONAL build-tool requirement (Stack or Cabal, auto-detected per root — providers.haskell.buildtool);
+--   * the Stack/Cabal build/run/test + phoityne debugging + dependency command surface.
 --
--- haskell-language-server (HLS) is the single LSP; the mason `haskell-language-server` package installs
--- a `haskell-language-server-wrapper` that selects the right HLS build for the project's GHC, so the
--- server config launches the wrapper with `--lsp`. HLS formats Haskell natively (its ormolu / fourmolu
--- plugin) and lints inline (its hlint plugin), so the per-filetype efm formatter / linter default to
--- `false`; the catalog still OFFERS fourmolu / ormolu (formatter) and hlint (linter) for users who
--- prefer efm-based tooling. build / run / test go through whichever build tool the project uses —
--- Stack or Cabal, auto-detected per root (providers.haskell.buildtool). Haskell is the user's OWN
--- toolchain (GHCup / mise / asdf), so the requirements surface GHC + the build tool, never install them.
+-- HLS keeps its bespoke servers/haskell-language-server.lua (a real file wins over the generic shim).
 --
 ---@module "lvim-lang.providers.haskell"
 
-local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
-local toolchain = require("lvim-lang.core.toolchain")
+local declarative = require("lvim-lang.core.declarative")
+local detect = require("lvim-lang.core.detect")
 local requirements = require("lvim-lang.core.requirements")
+local core_toolchain = require("lvim-lang.core.toolchain")
 local buildtool = require("lvim-lang.providers.haskell.buildtool")
 
 -- Shared catalog block for both Haskell filetypes (`haskell` and literate `lhaskell`) — the same
--- formatters / linter / debugger apply, each getting its own copy so a user can override one filetype
--- without touching the other.
+-- formatters / linter / debugger, each getting its own copy so a user can override one filetype alone.
 ---@return table
 local function ft_block()
     return {
         formatters = {
-            -- fourmolu / ormolu through efm (read stdin, emit formatted to stdout). Opt-in: HLS
-            -- formats by default via its own ormolu/fourmolu plugin.
             fourmolu = {
                 mason = "fourmolu",
                 efm = { formatCommand = "fourmolu --stdin-input-file ${INPUT}", formatStdin = true },
@@ -40,7 +35,6 @@ local function ft_block()
             },
         },
         linters = {
-            -- hlint through efm (reads the file). Opt-in: HLS surfaces hlint suggestions inline by default.
             hlint = {
                 mason = "hlint",
                 efm = {
@@ -56,55 +50,33 @@ local function ft_block()
             },
         },
         debuggers = {
-            -- haskell-debug-adapter (phoityne): a GHCi-driven DAP server; selecting it installs the
-            -- mason package so the adapter binary exists on disk.
             ["haskell-debug-adapter"] = { mason = "haskell-debug-adapter" },
         },
-        -- HLS formats + lints natively, so the efm formatter / linter default to false; the
-        -- haskell-debug-adapter is the default debugger.
+        -- HLS formats + lints natively → efm formatter / linter default false; the debug adapter is default.
         defaults = { formatter = false, linter = false, debugger = "haskell-debug-adapter" },
     }
 end
 
----@type table
-local DEFAULTS = {
-    -- Explicit binary paths; when set each wins over every other resolution strategy.
-    ghc_path = nil,
-    cabal_path = nil,
-    stack_path = nil,
-    hls_path = nil, -- the haskell-language-server(-wrapper) binary
-    fourmolu_path = nil,
-    ormolu_path = nil,
-    hlint_path = nil,
-    -- A shell command whose first output line is the `ghc` binary path (checked after ghc_path,
-    -- before the version manager / PATH). Empty by default.
-    ghc_lookup_cmd = nil,
-    -- Version manager for the toolchain: "ghcup" | "mise" | "asdf" | false (ignore) | function(root, tool).
-    -- Honours the active toolchain. Default: try ghcup (`ghcup whereis`), then mise / asdf, then the
-    -- GHCup bin dir, then PATH.
-    version_manager = nil,
+---@type LvimLangSpecData
+local DATA = {
+    name = "haskell",
+    filetypes = { "haskell", "lhaskell" },
+    root_patterns = { "stack.yaml", "cabal.project", "package.yaml", ".git" },
 
-    -- Debugging (haskell-debug-adapter / phoityne). Every field is configurable because phoityne is
-    -- sensitive to the project's exact GHCi invocation.
-    dap = {
-        haskell_debug_adapter_path = nil, -- explicit adapter binary (nil = toolchain / PATH / mason)
-        adapter_args = {}, -- extra argv for the adapter process
-        -- The GHCi command haskell-debug-adapter starts, per build tool. `TARGET` is phoityne's
-        -- placeholder for the loaded main target.
-        stack_ghci_cmd = "stack ghci --test --no-load --no-build --main-is TARGET --ghci-options -fprint-evld-with-show",
-        cabal_ghci_cmd = "cabal exec -- ghci -fprint-evld-with-show",
-        ghci_prompt = "λλλλ> ",
-        ghci_initial_prompt = nil, -- nil = reuse ghci_prompt
-        ghci_env = nil, -- table<string,string> passed to the GHCi session (nil = none)
-        startup_func = "", -- function to call after load (phoityne startupFunc)
-        startup_args = "", -- args for startup_func
-        stop_on_entry = true,
-        log_file = nil, -- nil = stdpath("cache")/lvim-lang-haskell-dap.log
-        log_level = "WARNING", -- phoityne log level
+    runtimes = {
+        {
+            bin = "ghc",
+            key = "ghc",
+            lookup_key = "ghc_lookup_cmd",
+            require = true,
+            label = "GHC (Haskell compiler)",
+            hint = "Install the Haskell toolchain via GHCup (https://www.haskell.org/ghcup/) and put `ghc` on "
+                .. "PATH — it provides ghc, cabal, stack and haskell-language-server.",
+        },
+        { bin = "cabal", key = "cabal" },
+        { bin = "stack", key = "stack" },
     },
 
-    -- LSP server catalog. haskell-language-server is the single Haskell server. HLS is configured
-    -- through workspace settings under the `haskell` key (its plugins / formatting provider).
     lsp = {
         servers = {
             ["haskell-language-server"] = {
@@ -114,13 +86,10 @@ local DEFAULTS = {
                 role = "types", -- completion / hover / definition / rename / inlay hints / format
                 settings = {
                     haskell = {
-                        -- The formatter HLS uses for its own format provider ("ormolu" | "fourmolu" |
-                        -- "stylish-haskell" | "brittany" | "floskell" | "none").
                         formattingProvider = "ormolu",
                         checkParents = "CheckOnSave",
                         checkProject = true,
                         plugin = {
-                            -- Inline hlint suggestions (so a separate efm linter is not needed).
                             hlint = { globalOn = true },
                         },
                     },
@@ -130,120 +99,157 @@ local DEFAULTS = {
         default = "haskell-language-server",
     },
 
-    -- Per-filetype formatter / linter / debugger catalog + selection (haskell + literate lhaskell).
     ft = {
         haskell = ft_block(),
         lhaskell = ft_block(),
     },
 
-    -- Statusline / picker icons (Nerd Font, single-width, all configurable).
     icons = {
-        statusline = "", -- the Haskell marker in the statusline segment (nf-dev-haskell)
+        statusline = "", -- the Haskell marker in the statusline segment (nf-dev-haskell)
         test = "󰙨",
         build = "󰜫",
         run = "󰐊",
         debug = "󰃤",
-        deps = "󰏗", -- dependency row
+        deps = "󰏗",
     },
 }
 
---- Health section for :checkhealth lvim-lang: whether the Haskell toolchain (ghc + build tool + HLS)
---- resolves for the current working directory, and at what version.
----@param h table  the vim.health reporter
----@return nil
-local function health(h)
-    local root = vim.uv.cwd() or "."
+local spec, defaults = declarative.build(DATA)
 
-    -- GHC + the build tools: report each with its version, warning when the essential ones are absent.
-    local report = {
-        { tool = "ghc", level = "warn", hint = "install the Haskell toolchain via GHCup (ghc / cabal / stack)" },
-        { tool = "cabal", level = "info", hint = "install Cabal via GHCup (for cabal.project / *.cabal builds)" },
-        { tool = "stack", level = "info", hint = "install Stack via GHCup (for stack.yaml builds)" },
-    }
-    for _, r in ipairs(report) do
-        local path, reason = toolchain.resolve("haskell", r.tool, root)
-        if path then
-            local ver = toolchain.version("haskell", r.tool, root)
-            h.ok(("%s: %s%s"):format(r.tool, path, ver and ("  (" .. ver .. ")") or ""))
-        elseif r.level == "warn" then
-            h.warn(("%s not found — %s"):format(r.tool, reason or r.hint))
-        else
-            h.info(("%s not found — %s"):format(r.tool, r.hint))
+-- ── EXTEND: GHCup toolchain resolution ──────────────────────────────────────────────────────────────
+
+-- The GHCup component name for each toolchain tool (`ghcup whereis <component>`).
+---@type table<string, string>
+local GHCUP_COMPONENT = { ghc = "ghc", cabal = "cabal", stack = "stack", ["haskell-language-server"] = "hls" }
+
+--- Resolve `tool` through the version manager: `ghcup whereis <component>` (active GHCup set) then
+--- `mise`/`asdf which`. `version_manager` may name one, be false, or be a function(root, tool).
+---@param tool string
+---@return fun(root: string): string|nil
+local function via_vm(tool)
+    return function(root)
+        local vm = (require("lvim-lang.config").providers.haskell or {}).version_manager
+        if vm == false then
+            return nil
         end
-    end
-
-    local hls = toolchain.resolve("haskell", "haskell-language-server", root)
-    if hls then
-        h.ok(("haskell-language-server: %s"):format(hls))
-    else
-        h.info("haskell-language-server not found — installed on demand from the mason registry")
+        if type(vm) == "function" then
+            return vm(root, tool)
+        end
+        local managers = type(vm) == "string" and { vm } or { "ghcup", "mise", "asdf" }
+        for _, mgr in ipairs(managers) do
+            if vim.fn.executable(mgr) == 1 then
+                local argv
+                if mgr == "ghcup" then
+                    local component = GHCUP_COMPONENT[tool]
+                    argv = component and { mgr, "whereis", component } or nil
+                else
+                    argv = { mgr, "which", tool }
+                end
+                if argv then
+                    local out = vim.system(argv, { cwd = root, text = true }):wait()
+                    if out.code == 0 then
+                        local path = vim.trim(out.stdout or "")
+                        if path ~= "" and vim.fn.executable(path) == 1 then
+                            return path
+                        end
+                    end
+                end
+            end
+        end
+        return nil
     end
 end
 
---- Statusline segment for a root: the Haskell marker + the active run config (if any).
----@param root string
----@return string
-local function statusline(root)
-    local ic = (config.providers.haskell and config.providers.haskell.icons) or {}
-    local parts = { ic.statusline or "" }
-    local rc = require("lvim-lang.core.runcfg").active(root)
-    if rc and rc.name then
-        parts[#parts + 1] = "➤ " .. rc.name
+--- The on-disk `bin` inside the GHCup bin dir (`$GHCUP_BIN` or `~/.ghcup/bin`), if executable.
+---@param bin string
+---@return fun(): string|nil
+local function ghcup(bin)
+    return function()
+        local dir = vim.env.GHCUP_BIN
+        if not dir or dir == "" then
+            dir = vim.fs.joinpath(vim.env.HOME or vim.fn.expand("~"), ".ghcup", "bin")
+        end
+        local path = vim.fs.joinpath(dir, bin)
+        return vim.fn.executable(path) == 1 and path or nil
     end
-    return table.concat(parts, "  ")
 end
 
----@type LvimLangProvider
-local spec = {
-    name = "haskell",
-    filetypes = { "haskell", "lhaskell" },
-    root_patterns = { "stack.yaml", "cabal.project", "package.yaml", ".git" },
-    statusline = statusline,
-    toolchain = require("lvim-lang.providers.haskell.toolchain"),
-    commands = require("lvim-lang.providers.haskell.commands"),
-    -- lvim-tasks templates (the safe dependency resolve) — also runnable via :LvimLang deps.
-    tasks = require("lvim-lang.providers.haskell.deps").templates,
-    --- Surfaced at activation + in :checkhealth: GHC and the project's build tool must be present
-    --- (HLS needs GHC; build / run / test need the build tool). Haskell is the user's own toolchain.
-    ---@param root string
-    ---@return LvimLangRequirement[]
-    requirements = function(root)
-        local reqs = {
-            requirements.tool_present(
-                "haskell",
-                "ghc",
-                "GHC (Haskell compiler)",
-                "Install the Haskell toolchain via GHCup (https://www.haskell.org/ghcup/) and put `ghc` on "
-                    .. "PATH — it provides ghc, cabal, stack and haskell-language-server.",
-                root
-            ),
-        }
-        local tool = buildtool.detect(root)
-        if tool then
-            reqs[#reqs + 1] = requirements.tool_present(
-                "haskell",
-                tool,
-                tool == "stack" and "Stack build tool" or "Cabal build tool",
-                "This project uses " .. tool .. " — install it via GHCup and put `" .. tool .. "` on PATH.",
-                root
-            )
-        else
-            -- No project build tool detected yet: at least one of Cabal / Stack is needed to build.
-            local cabal = toolchain.resolve("haskell", "cabal", root)
-            local stack = toolchain.resolve("haskell", "stack", root)
-            reqs[#reqs + 1] = {
-                label = "Cabal or Stack build tool",
-                ok = (cabal or stack) ~= nil,
-                detail = (cabal or stack) and ("found: " .. (cabal or stack)) or "neither found",
-                hint = "Install Cabal or Stack via GHCup to build / run / test the project.",
-                severity = "warn",
-            }
-        end
-        return reqs
-    end,
-    health = health,
+local tc = spec.toolchain.tools
+tc.ghc = {
+    { kind = "path", value = detect.explicit("haskell", "ghc") },
+    { kind = "path", value = detect.lookup("haskell", "ghc_lookup_cmd") },
+    { kind = "path", value = via_vm("ghc") },
+    { kind = "path", value = ghcup("ghc") },
+    { kind = "which", value = "ghc" },
+}
+tc.cabal = {
+    { kind = "path", value = detect.explicit("haskell", "cabal") },
+    { kind = "path", value = via_vm("cabal") },
+    { kind = "path", value = ghcup("cabal") },
+    { kind = "which", value = "cabal" },
+}
+tc.stack = {
+    { kind = "path", value = detect.explicit("haskell", "stack") },
+    { kind = "path", value = via_vm("stack") },
+    { kind = "path", value = ghcup("stack") },
+    { kind = "which", value = "stack" },
+}
+tc["haskell-language-server"] = {
+    { kind = "path", value = detect.explicit("haskell", "haskell-language-server") },
+    { kind = "path", value = via_vm("haskell-language-server") },
+    { kind = "path", value = ghcup("haskell-language-server-wrapper") },
+    { kind = "path", value = detect.in_mason("haskell-language-server-wrapper") },
+    { kind = "which", value = "haskell-language-server-wrapper" },
+    { kind = "which", value = "haskell-language-server" },
 }
 
-registry.register(spec, DEFAULTS)
+-- Requirements: the factory surfaces ghc; add the CONDITIONAL build-tool requirement (detected per root).
+local base_reqs = spec.requirements
+spec.requirements = function(root)
+    local reqs = base_reqs and base_reqs(root) or {}
+    local tool = buildtool.detect(root)
+    if tool then
+        reqs[#reqs + 1] = requirements.tool_present(
+            "haskell",
+            tool,
+            tool == "stack" and "Stack build tool" or "Cabal build tool",
+            "This project uses " .. tool .. " — install it via GHCup and put `" .. tool .. "` on PATH.",
+            root
+        )
+    else
+        local cabal = core_toolchain.resolve("haskell", "cabal", root)
+        local stack = core_toolchain.resolve("haskell", "stack", root)
+        reqs[#reqs + 1] = {
+            label = "Cabal or Stack build tool",
+            ok = (cabal or stack) ~= nil,
+            detail = (cabal or stack) and ("found: " .. (cabal or stack)) or "neither found",
+            hint = "Install Cabal or Stack via GHCup to build / run / test the project.",
+            severity = "warn",
+        }
+    end
+    return reqs
+end
+
+-- Debugging (haskell-debug-adapter / phoityne) — every field configurable (phoityne is sensitive to the
+-- project's exact GHCi invocation).
+defaults.dap = {
+    haskell_debug_adapter_path = nil,
+    adapter_args = {},
+    stack_ghci_cmd = "stack ghci --test --no-load --no-build --main-is TARGET --ghci-options -fprint-evld-with-show",
+    cabal_ghci_cmd = "cabal exec -- ghci -fprint-evld-with-show",
+    ghci_prompt = "λλλλ> ",
+    ghci_initial_prompt = nil,
+    ghci_env = nil,
+    startup_func = "",
+    startup_args = "",
+    stop_on_entry = true,
+    log_file = nil,
+    log_level = "WARNING",
+}
+
+spec.commands = require("lvim-lang.providers.haskell.commands")
+spec.tasks = require("lvim-lang.providers.haskell.deps").templates
+
+registry.register(spec, defaults)
 
 return spec

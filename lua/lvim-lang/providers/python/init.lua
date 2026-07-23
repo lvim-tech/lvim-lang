@@ -1,26 +1,26 @@
--- lvim-lang.providers.python: the Python provider.
--- Assembles the LvimLangProvider spec and self-registers with the core registry on require
--- (lvim-lang.setup loads this module from BUILTIN_PROVIDERS). Reuses the Go/Rust core: the
--- per-filetype catalog (core.catalog), the multi-LSP fan-out (core.lsp.register_catalog) and
--- on-demand tooling (core.ensure).
+-- lvim-lang.providers.python: the Python provider (base + extend).
+-- Built through the shared factory (core.declarative): a DATA record supplies the common skeleton —
+-- name/filetypes, the MULTI-LSP catalog (basedpyright for types AND ruff for lint/format, both attaching
+-- by default, coordinated via per-server on_attach), the per-filetype tool catalog (ruff/black/isort/…
+-- formatters, ruff/mypy/flake8/… linters, debugpy), the python toolchain, the requirement, health and
+-- statusline. This module then EXTENDS the returned spec with Python's VENV-AWARENESS — the interpreter
+-- and every tool use the project's virtual environment (providers.python.venv):
+--   * the interpreter resolves config → persisted pick → auto-detected env (.venv/poetry/pipenv/conda/…)
+--     → mise/asdf/pyenv → python3/python;
+--   * basedpyright / ruff / basedpyright-cli resolve from that env FIRST (a `pip install`ed tool wins),
+--     then mason, then PATH;
+--   * the pip/poetry/uv + pytest/unittest command surface (providers.python.commands / .deps / .venv).
 --
--- Python is the FIRST provider whose default LSP is a LIST rather than a string: `basedpyright`
--- (types / hover / completion / inlay hints) AND `ruff` (lint diagnostics + format + organize
--- imports) attach to the SAME buffer, each owning what it is best at — so their server entries
--- coordinate (basedpyright yields formatting to ruff; ruff yields hover to basedpyright). Because
--- ruff-the-LSP owns formatting and linting, the per-filetype efm formatter / linter default to
--- `false` (the catalog still OFFERS black / isort / mypy / … for users who prefer efm-based tooling
--- — set `lsp = "basedpyright"` to drop ruff and let an efm formatter own the buffer). The whole
--- toolchain is VENV-AWARE (providers.python.venv): the interpreter, the LSP's import resolution, the
--- debugger and the test runner all use the project's virtual environment.
+-- ruff-the-LSP owns formatting + linting, so the efm formatter/linter default off. basedpyright / ruff
+-- keep their bespoke server-config modules (a real file wins over the generic shim).
 --
 ---@module "lvim-lang.providers.python"
 
-local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
-local toolchain = require("lvim-lang.providers.python.toolchain")
+local declarative = require("lvim-lang.core.declarative")
+local detect = require("lvim-lang.core.detect")
 local core_toolchain = require("lvim-lang.core.toolchain")
-local requirements = require("lvim-lang.core.requirements")
+local venv = require("lvim-lang.providers.python.venv")
 
 --- Turn OFF an LSP client capability once (per-client, so it covers every buffer of that client).
 ---@param client table  the LSP client (server_capabilities toggled in place)
@@ -32,19 +32,24 @@ local function disable_cap(client, cap)
     end
 end
 
----@type table
-local DEFAULTS = {
-    -- Explicit binary paths; each wins over every other resolution strategy.
-    python_path = nil,
-    basedpyright_path = nil,
-    ruff_path = nil,
-    python_lookup_cmd = nil, -- shell command whose first line is the interpreter path
-    -- Version manager for the interpreter: "mise" | "asdf" | "pyenv" | false | function(root).
-    -- Honours a project's pin (.python-version / .tool-versions). Default: mise → asdf → pyenv → PATH.
-    version_manager = nil,
+---@type LvimLangSpecData
+local DATA = {
+    name = "python",
+    filetypes = { "python" },
+    root_patterns = { "pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "Pipfile", ".git" },
 
-    -- LSP server catalog. The default is a LIST — basedpyright (types) AND ruff (lint + format).
-    -- Add / remove keys, or set `lsp.server = "basedpyright"` to run a single server.
+    -- The interpreter is required; its resolution is VENV-AWARE and overridden in the extend below.
+    runtime = {
+        bin = "python",
+        key = "python",
+        lookup_key = "python_lookup_cmd",
+        managers = { "mise", "asdf", "pyenv" },
+        require = true,
+        label = "Python interpreter",
+        hint = "Select a project venv or install Python and put it on PATH (or set providers.python.bin_paths.python); "
+            .. "the language server and debugger need it.",
+    },
+
     lsp = {
         servers = {
             basedpyright = {
@@ -86,7 +91,6 @@ local DEFAULTS = {
                 on_attach = function(client, _bufnr)
                     disable_cap(client, "hoverProvider")
                 end,
-                -- ruff server settings live under init_options.settings (set in servers/ruff.lua).
                 init_options = {
                     settings = {
                         lineLength = 88,
@@ -100,9 +104,6 @@ local DEFAULTS = {
         default = { "basedpyright", "ruff" }, -- multi-LSP by default
     },
 
-    -- Per-filetype catalog. ruff-the-LSP formats + lints by default, so the efm formatter / linter
-    -- are `false`; the catalog still offers black / isort / autopep8 / yapf (formatters) and mypy /
-    -- flake8 / pylint / pyflakes (linters) for users who prefer efm-based tooling.
     ft = {
         python = {
             formatters = {
@@ -161,15 +162,6 @@ local DEFAULTS = {
         },
     },
 
-    -- Codegen: `:LvimLang stub <import>` runs basedpyright `--createstub` (type-stub generation).
-    -- On-demand — basedpyright's CLI ships with the LSP package, resolved through the toolchain.
-    codegen = {},
-
-    -- Dependency manager preference. `auto` detects it from the project (pyproject `[tool.poetry]` /
-    -- `[tool.uv]`, `uv.lock`, `Pipfile`, else pip); pin it to "pip"|"poetry"|"uv"|"pipenv" to force one.
-    dependency_manager = "auto",
-
-    -- Statusline / picker icons (Nerd Font, all configurable).
     icons = {
         statusline = "󰌠", -- the Python marker in the statusline segment
         venv = "󰌠", -- interpreter / venv picker row
@@ -180,91 +172,66 @@ local DEFAULTS = {
     },
 }
 
---- Health section for :checkhealth lvim-lang: the resolved interpreter (+ its environment), the
---- language servers and the debugger module, for the current working directory.
----@param h table  the vim.health reporter
----@return nil
-local function health(h)
-    local root = vim.uv.cwd() or "."
-    local venv = require("lvim-lang.providers.python.venv")
+local spec, defaults = declarative.build(DATA)
 
-    local py = core_toolchain.resolve("python", "python", root)
-    if py then
-        local ver = core_toolchain.version("python", "python", root)
-        local dir = venv.dir(py)
-        h.ok(
-            ("python: %s%s%s"):format(py, ver and ("  (" .. ver .. ")") or "", dir and ("  [env " .. dir .. "]") or "")
-        )
-    else
-        h.warn("python not found — install Python, create a .venv, or set providers.python.python_path")
-    end
+-- ── EXTEND: venv-aware toolchain resolution ─────────────────────────────────────────────────────────
 
-    for _, tool in ipairs({ "basedpyright", "ruff" }) do
-        local path = core_toolchain.resolve("python", tool, root)
-        if path then
-            h.ok(("%s: %s"):format(tool, path))
-        else
-            h.info(("%s not found — installed on demand from the mason registry"):format(tool))
+--- A tool `bin` inside the resolved interpreter's environment (`<env>/bin/<bin>` or `<env>/Scripts/<bin>`),
+--- if executable — so a project that `pip install`ed the tool into its venv is preferred over mason.
+---@param bin string
+---@return fun(root: string): string|nil
+local function in_venv(bin)
+    return function(root)
+        local py = core_toolchain.resolve("python", "python", root)
+        local dir = py and venv.dir(py)
+        if not dir then
+            return nil
         end
-    end
-
-    -- debugpy is a python MODULE (run as `python -m debugpy`), not a standalone binary.
-    if py then
-        local out = vim.system({ py, "-c", "import debugpy" }, { cwd = root }):wait()
-        if out.code == 0 then
-            h.ok("debugpy: importable in the resolved interpreter")
-        else
-            h.info("debugpy not importable in the interpreter — installed on demand from the mason registry")
+        for _, sub in ipairs({ "bin", "Scripts" }) do
+            local p = vim.fs.joinpath(dir, sub, bin)
+            if vim.fn.executable(p) == 1 then
+                return p
+            end
         end
+        return nil
     end
 end
 
---- Statusline segment for a root: the Python marker + the environment name + the active run config.
----@param root string
----@return string
-local function statusline(root)
-    local ic = (config.providers.python and config.providers.python.icons) or {}
-    local parts = { ic.statusline or "" }
-    local py = core_toolchain.resolve("python", "python", root)
-    local dir = py and require("lvim-lang.providers.python.venv").dir(py)
-    if dir then
-        parts[#parts + 1] = vim.fs.basename(dir)
-    end
-    local rc = require("lvim-lang.core.runcfg").active(root)
-    if rc and rc.name then
-        parts[#parts + 1] = "➤ " .. rc.name
-    end
-    return table.concat(parts, "  ")
-end
-
----@type LvimLangProvider
-local spec = {
-    name = "python",
-    filetypes = { "python" },
-    root_patterns = { "pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "Pipfile", ".git" },
-    statusline = statusline,
-    toolchain = toolchain,
-    commands = require("lvim-lang.providers.python.commands"),
-    -- lvim-tasks templates (arg-less dependency subcommands) — also via :LvimLang deps.
-    tasks = require("lvim-lang.providers.python.deps").templates,
-    --- Surfaced at activation + in :checkhealth: a Python interpreter must be resolvable (server + debug).
-    ---@param root string
-    ---@return LvimLangRequirement[]
-    requirements = function(root)
-        return {
-            requirements.tool_present(
-                "python",
-                "python",
-                "Python interpreter",
-                "Select a project venv or install Python and put it on PATH (or set providers.python.python_path); "
-                    .. "the language server and debugger need it.",
-                root
-            ),
-        }
-    end,
-    health = health,
+local tc = spec.toolchain.tools
+-- The interpreter: config → persisted pick → auto-detected env → version manager → python3 / python.
+tc.python = {
+    { kind = "path", value = detect.explicit("python", "python") },
+    { kind = "path", value = venv.selected },
+    {
+        kind = "path",
+        value = function(root)
+            return (select(1, venv.detect(root)))
+        end,
+    },
+    {
+        kind = "path",
+        value = detect.via_version_manager("python", "python", { managers = { "mise", "asdf", "pyenv" } }),
+    },
+    { kind = "which", value = "python3" },
+    { kind = "which", value = "python" },
+}
+-- basedpyright / ruff resolve from the project env before mason (a pip-installed tool wins).
+table.insert(tc.basedpyright, 2, { kind = "path", value = in_venv("basedpyright-langserver") })
+table.insert(tc.ruff, 2, { kind = "path", value = in_venv("ruff") })
+-- basedpyright's CLI (used by `:LvimLang stub --createstub`): env → mason → PATH.
+tc["basedpyright-cli"] = {
+    { kind = "path", value = in_venv("basedpyright") },
+    { kind = "path", value = detect.in_mason("basedpyright") },
+    { kind = "which", value = "basedpyright" },
 }
 
-registry.register(spec, DEFAULTS)
+-- Dependency manager preference ("auto" detects poetry/uv/pipenv/pip); codegen is on-demand (tsc-less).
+defaults.dependency_manager = "auto"
+defaults.codegen = {}
+
+spec.commands = require("lvim-lang.providers.python.commands")
+spec.tasks = require("lvim-lang.providers.python.deps").templates
+
+registry.register(spec, defaults)
 
 return spec

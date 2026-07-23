@@ -77,6 +77,9 @@ function M.setup(opts)
             require("lvim-lang.providers." .. name)
         end
     end
+    -- Declarative providers (the Tier 2/3/4 long tail): built from data records through core.declarative
+    -- and mass-registered here, honouring config.disable exactly like the bespoke built-ins above.
+    require("lvim-lang.providers.registry").setup(disabled)
     commands.setup()
 end
 

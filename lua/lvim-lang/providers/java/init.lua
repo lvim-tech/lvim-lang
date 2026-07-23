@@ -1,47 +1,50 @@
--- lvim-lang.providers.java: the Java provider.
--- Assembles the LvimLangProvider spec and self-registers with the core registry on require
--- (lvim-lang.setup loads this module from BUILTIN_PROVIDERS). Reuses the Go/Rust/Python core: the
--- per-filetype catalog (core.catalog), the LSP fan-out (core.lsp.register_catalog), the lvim-tasks
--- runner (core.runner) and on-demand tooling (core.ensure).
+-- lvim-lang.providers.java: the Java provider (base + extend).
+-- Built through the shared factory (core.declarative): a DATA record supplies the common skeleton —
+-- name/filetypes/root, the jdtls catalog, the per-filetype tool catalog (google-java-format formatter,
+-- checkstyle linter, the java-debug bundle), the java-test install helper, the java toolchain (SDKMAN /
+-- mise / asdf), the java requirement, health and statusline. This module then EXTENDS the returned spec
+-- with Java's idiosyncratic parts:
+--   * the JDK-VERSION requirement (jdtls needs Java 21+ — providers.java.jdk);
+--   * the jdtls workspace + debug-attach tunables;
+--   * the `jdt://` decompiled-source handler installed on first Java buffer (providers.java.decompile);
+--   * the build-tool-aware command surface (Gradle / Maven — providers.java.commands / .buildtool / .dap /
+--     .decompile / .refactor). jdtls drives debugging via the java-debug / java-test BUNDLES.
 --
--- jdtls (the Eclipse JDT language server) is the one bespoke wrinkle: it is launched through a
--- `jdtls` wrapper that REQUIRES a per-project `-data <workspace>` directory, and it drives debugging
--- itself via the java-debug / java-test BUNDLES (their jars are handed to jdtls as init_options.bundles
--- in servers/jdtls.lua). jdtls formats Java natively, so the per-filetype efm formatter / linter
--- default to `false`; the catalog still OFFERS google-java-format (formatter) and checkstyle (linter)
--- for users who prefer efm-based tooling. build / run / test go through whichever build tool the
--- project uses — Gradle or Maven, auto-detected per root (providers.java.buildtool).
+-- jdtls formats Java natively, so the efm formatter/linter default off. jdtls keeps its bespoke
+-- servers/jdtls.lua (per-project `-data <workspace>` + the bundle jars as init_options.bundles).
 --
 ---@module "lvim-lang.providers.java"
 
-local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
-local toolchain = require("lvim-lang.core.toolchain")
-local requirements = require("lvim-lang.core.requirements")
+local declarative = require("lvim-lang.core.declarative")
+local detect = require("lvim-lang.core.detect")
 local jdk = require("lvim-lang.providers.java.jdk")
 
----@type table
-local DEFAULTS = {
-    -- Explicit binary paths; when set each wins over every other resolution strategy.
-    java_path = nil,
-    jdtls_path = nil,
-    -- A shell command whose first output line is the `java` binary path (checked after java_path,
-    -- before the version manager / PATH). Empty by default.
-    java_lookup_cmd = nil,
-    -- Version manager for the JDK: "mise" | "asdf" | "sdkman" | false (ignore) | function(root).
-    -- Honours the project's pinned JDK. Default: try mise, then asdf, then SDKMAN, else PATH.
-    version_manager = nil,
+---@type LvimLangSpecData
+local DATA = {
+    name = "java",
+    filetypes = { "java" },
+    root_patterns = {
+        "settings.gradle",
+        "settings.gradle.kts",
+        "build.gradle",
+        "build.gradle.kts",
+        "pom.xml",
+        ".git",
+    },
 
-    -- Directory under which per-project jdtls DATA workspaces are created (keyed by the sanitized
-    -- project root). nil → `stdpath("cache")/jdtls`. jdtls REQUIRES a writable workspace per project.
-    workspace_root = nil,
+    runtime = {
+        bin = "java",
+        key = "java",
+        lookup_key = "java_lookup_cmd",
+        sdkman = "java",
+        require = true,
+        label = "Java runtime",
+        hint = "Install a JDK (21+ for jdtls) and put `java` on PATH, or set providers.java.bin_paths.java.",
+    },
+    -- `java` (and the `jdtls` launcher that wraps it) print `-version` to stderr.
+    version = detect.version_both("-version"),
 
-    -- Debugging: the JDWP port the build tool's remote-debug switch opens (`--debug-jvm` /
-    -- `-Dmaven.surefire.debug`), and how long to wait for that test JVM before the debugger attaches.
-    debug_attach_port = 5005,
-    debug_attach_delay_ms = 2000,
-
-    -- LSP server catalog. jdtls is the single Java server; its settings live under `settings.java`.
     lsp = {
         servers = {
             jdtls = {
@@ -81,11 +84,6 @@ local DEFAULTS = {
         default = "jdtls",
     },
 
-    -- Per-FILETYPE catalog: formatters / linters / debuggers for `java`, each with a default config,
-    -- plus which is the `default` (or false = none). Only the CHOSEN tools install / wire. jdtls
-    -- formats + diagnoses natively, so the efm formatter / linter default to `false`; both are still
-    -- offered for users who prefer efm-based tooling
-    -- (set ft.java.formatter = "google-java-format", ft.java.linter = "checkstyle").
     ft = {
         java = {
             formatters = {
@@ -98,7 +96,6 @@ local DEFAULTS = {
                 checkstyle = {
                     mason = "checkstyle",
                     efm = {
-                        -- checkstyle needs a ruleset; the bundled Google style is a sane default.
                         lintCommand = "checkstyle -c /google_checks.xml ${INPUT}",
                         lintStdin = false,
                         lintFormats = { "[%t%*[A-Z]] %f:%l:%c: %m", "[%t%*[A-Z]] %f:%l: %m" },
@@ -106,107 +103,54 @@ local DEFAULTS = {
                 },
             },
             debuggers = {
-                -- The java-debug plugin: no standalone binary — its jars are loaded into jdtls as a
-                -- bundle (see providers.java.dap.bundles). Selecting it installs the mason package so
-                -- the bundle jars exist on disk.
+                -- The java-debug plugin: no standalone binary — its jars load into jdtls as a bundle
+                -- (providers.java.dap.bundles). Selecting it installs the mason package for the jars.
                 ["java-debug-adapter"] = { mason = "java-debug-adapter" },
             },
             defaults = { formatter = false, linter = false, debugger = "java-debug-adapter" },
         },
     },
 
-    -- Extra tools installed UPFRONT (in the file-open installer popup) alongside the LSP/debugger:
-    -- the java-test runners, whose jars jdtls loads as a bundle so single-test launching works.
+    -- Installed UPFRONT alongside the LSP/debugger: the java-test runners, whose jars jdtls loads as a
+    -- bundle so single-test launching works.
     tools = { "java-test" },
 
-    -- Nerd Font icons used in the Java provider's statusline / pickers (all configurable).
     icons = {
         statusline = "", -- the Java marker in the statusline segment
-        test = "󰙨", -- test runner / result row
-        build = "󰜫", -- build task row
-        run = "󰐊", -- run task row
-        debug = "󰃤", -- debug session row
-        deps = "󰏗", -- dependency row
+        test = "󰙨",
+        build = "󰜫",
+        run = "󰐊",
+        debug = "󰃤",
+        deps = "󰏗",
     },
 }
 
---- Health section for :checkhealth lvim-lang: whether the Java toolchain (java + jdtls) resolves for
---- the current working directory, and at what version.
----@param h table  the vim.health reporter
----@return nil
-local function health(h)
-    local root = vim.uv.cwd() or "."
-    local java, reason = toolchain.resolve("java", "java", root)
-    if java then
-        local ver = toolchain.version("java", "java", root)
-        h.ok(("java: %s%s"):format(java, ver and ("  (" .. ver .. ")") or ""))
-    else
-        h.warn(("java not found — %s"):format(reason or "install a JDK or set providers.java.java_path"))
-    end
+local spec, defaults = declarative.build(DATA)
 
-    local jdtls = toolchain.resolve("java", "jdtls", root)
-    if jdtls then
-        h.ok(("jdtls: %s"):format(jdtls))
-    else
-        h.info("jdtls not found — installed on demand from the mason registry")
-    end
+-- ── EXTEND ─────────────────────────────────────────────────────────────────────────────────────────
+
+-- jdtls workspace + debug-attach tunables the server / commands / dap read.
+defaults.workspace_root = nil -- per-project jdtls DATA workspaces (nil = stdpath("cache")/jdtls)
+defaults.debug_attach_port = 5005 -- the JDWP port the build tool's remote-debug switch opens
+defaults.debug_attach_delay_ms = 2000 -- wait for the test JVM before the debugger attaches
+
+-- Requirements: the factory surfaces java presence; add the JDK-VERSION check (jdtls needs Java 21+).
+local base_reqs = spec.requirements
+spec.requirements = function(root)
+    local list = base_reqs and base_reqs(root) or {}
+    list[#list + 1] = jdk.requirement(root)
+    return list
 end
 
---- Statusline segment for a root: the Java marker + the active run config (if any).
----@param root string
----@return string
-local function statusline(root)
-    local ic = (config.providers.java and config.providers.java.icons) or {}
-    local parts = { ic.statusline or "" }
-    local rc = require("lvim-lang.core.runcfg").active(root)
-    if rc and rc.name then
-        parts[#parts + 1] = "➤ " .. rc.name
-    end
-    return table.concat(parts, "  ")
+-- First Java buffer in a root: install the `jdt://` handler so go-to-definition into a library class
+-- (whose source jar is not attached) opens jdtls's decompiled source instead of an empty buffer.
+spec.on_activate = function(_root, _bufnr)
+    require("lvim-lang.providers.java.decompile").setup()
 end
 
----@type LvimLangProvider
-local spec = {
-    name = "java",
-    filetypes = { "java" },
-    root_patterns = {
-        "settings.gradle",
-        "settings.gradle.kts",
-        "build.gradle",
-        "build.gradle.kts",
-        "pom.xml",
-        ".git",
-    },
-    statusline = statusline,
-    toolchain = require("lvim-lang.providers.java.toolchain"),
-    commands = require("lvim-lang.providers.java.commands"),
-    -- lvim-tasks templates (arg-less dependency subcommands) — also runnable via :LvimLang deps.
-    tasks = require("lvim-lang.providers.java.deps").templates,
-    --- Surfaced at activation + in :checkhealth: a JDK must be present, and jdtls needs it to be 21+.
-    ---@param root string
-    ---@return LvimLangRequirement[]
-    requirements = function(root)
-        return {
-            requirements.tool_present(
-                "java",
-                "java",
-                "Java runtime",
-                "Install a JDK (21+ for jdtls) and put `java` on PATH, or set providers.java.java_path.",
-                root
-            ),
-            jdk.requirement(root),
-        }
-    end,
-    -- First Java buffer in a root: install the `jdt://` handler so go-to-definition into a library class
-    -- (whose source jar is not attached) opens jdtls's decompiled source instead of an empty buffer.
-    ---@param _root string
-    ---@param _bufnr integer
-    on_activate = function(_root, _bufnr)
-        require("lvim-lang.providers.java.decompile").setup()
-    end,
-    health = health,
-}
+spec.commands = require("lvim-lang.providers.java.commands")
+spec.tasks = require("lvim-lang.providers.java.deps").templates
 
-registry.register(spec, DEFAULTS)
+registry.register(spec, defaults)
 
 return spec
