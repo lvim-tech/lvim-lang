@@ -25,8 +25,29 @@ local M = {}
 -- Built-in providers loaded by setup(); each module self-registers on require. Growing this
 -- list is how a new first-party language provider ships.
 ---@type string[]
-local BUILTIN_PROVIDERS =
-    { "dart", "go", "rust", "python", "typescript", "cpp", "java", "csharp", "ruby", "swift", "php", "kotlin", "zig" }
+local BUILTIN_PROVIDERS = {
+    "dart",
+    "go",
+    "rust",
+    "python",
+    "typescript",
+    "cpp",
+    "java",
+    "csharp",
+    "fsharp",
+    "ruby",
+    "swift",
+    "php",
+    "kotlin",
+    "scala",
+    "zig",
+    "unison",
+    "ocaml",
+    "erlang",
+    "clojure",
+    "elixir",
+    "haskell",
+}
 
 ---@type boolean
 local registered = false

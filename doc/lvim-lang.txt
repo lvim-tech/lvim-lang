@@ -24,8 +24,9 @@ lvim-ui.
 
 Activation is lazy and per project root: nothing is wired for a language until
 the first buffer of its filetype is opened. Built-in providers: Dart/Flutter,
-Go, Rust, Python, TypeScript, C/C++, Java, C# and Ruby (see
-docs/providers/<name>.md).
+Go, Rust, Python, TypeScript, C/C++, Java, C#, F#, Ruby, PHP, Swift, Kotlin,
+Scala, Zig, Unison, Erlang, Elixir, OCaml, Haskell and Clojure
+(see docs/providers/<name>.md).
 
 ==============================================================================
 2. SETUP                                                        *lvim-lang-setup*
@@ -159,8 +160,36 @@ Rust:
     :LvimLang debug-test         Debug the test under the cursor.
     :LvimLang config             Pick the active run configuration.
 
+Unison:
+    :LvimLang run <main>         ucm run <main> (execute a codebase main, non-interactive).
+    :LvimLang run-file [main]    ucm run.file <current .u file> [main].
+    :LvimLang transcript [file]  ucm transcript <file.md> (scripted/CI runs, incl. tests).
+
+    Unison is unusual: its LSP is served by a RUNNING UCM over TCP (127.0.0.1:5757 by
+    default; env UNISON_LSP_PORT). Start `ucm` in your codebase before opening a Unison
+    buffer. There is no formatter/linter/DAP and no first-class test runner — see
+    docs/providers/unison.md.
+
+OCaml:
+    :LvimLang build [args]       dune build.
+    :LvimLang run [args]         dune exec <target> (+ active run config).
+    :LvimLang exec <target>      dune exec <target> [-- args] (raw, no run config).
+    :LvimLang test [args]        dune test (alias of dune runtest).
+    :LvimLang test-func          Run the test directory of the file under the cursor.
+    :LvimLang fmt [args]         dune build @fmt --auto-promote (ocamlformat).
+    :LvimLang utop [dir]         dune utop — a REPL with the project's libraries.
+    :LvimLang deps <install|list|upgrade>   opam dependency operations.
+    :LvimLang debug              Start / continue an earlybird (bytecode) session.
+    :LvimLang config             Pick the active run configuration.
+
+    The OCaml toolchain is the user's own opam switch (a project-local _opam/ wins);
+    ocaml-lsp formats via ocamlformat natively. dune has no per-test filter and no
+    non-destructive dependency-edit verb (edit dune-project / *.opam) — see
+    docs/providers/ocaml.md.
+
 See the per-provider docs for the full options and catalogs: docs/providers/dart.md,
-docs/providers/go.md, docs/providers/rust.md.
+docs/providers/go.md, docs/providers/rust.md, docs/providers/unison.md,
+docs/providers/ocaml.md.
 
 ==============================================================================
 5. RUN CONFIGURATIONS                                     *lvim-lang-run-configs*
@@ -211,11 +240,25 @@ of it lingers — and register yours after setup: >lua
 Built-in providers: Dart / Flutter (dartls), Go (gopls), Rust (rust-analyzer),
 Python (basedpyright + ruff — the first multi-LSP default), TypeScript /
 JavaScript (vtsls + eslint), C/C++ (clangd), Java (jdtls), C#/.NET
-(omnisharp, roslyn opt-in) and Ruby (ruby-lsp, solargraph opt-in). Each owns a
+(omnisharp, roslyn opt-in), F#/.NET (fsautocomplete — Fantomas format task),
+Ruby (ruby-lsp, solargraph opt-in), PHP (intelephense,
+phpactor opt-in), Swift (sourcekit-lsp), Kotlin (kotlin-language-server),
+Scala (metals — sbt/mill/bloop build/run/test, scalafmt, metals-driven debug;
+metals owns the Bloop build server itself), Zig
+(zls), Unison (ucm — the LSP is served by a running UCM over TCP, not a
+launched binary), Erlang (erlang-ls — rebar3 build/test, erlfmt, no debug
+adapter), OCaml (ocaml-lsp — dune build/exec/test/utop, ocamlformat via the
+LSP, opam deps, earlybird bytecode debug) and Haskell (haskell-language-server —
+stack/cabal build/run/test, fourmolu/ormolu + hlint via HLS, hspec test
+targeting, haskell-debug-adapter debug) and Clojure (clojure-lsp — the Clojure
+CLI / Leiningen / Boot run+test, cljfmt + clj-kondo via efm, clojure.test
+targeting, no debug adapter). Each owns a
 per-filetype catalog of LSP server(s), formatters, linters and debuggers — you
 pick the active tools and override any setting, and the chosen tools install
 through the unified lvim-installer popup on file open. Full options and catalogs
-per provider are in docs/providers/<name>.md.
+per provider are in docs/providers/<name>.md. (Unison is the lighter exception —
+no external formatter / linter / debugger, and only non-interactive `ucm`
+invocations; see docs/providers/unison.md.)
 
 ==============================================================================
 8. HEALTH                                                      *lvim-lang-health*

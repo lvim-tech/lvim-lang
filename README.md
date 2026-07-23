@@ -30,8 +30,19 @@ unified `lvim-installer` popup when you open a file.
 | C / C++ | `c`, `cpp`, `objc`, `objcpp` | clangd | [docs/providers/cpp.md](docs/providers/cpp.md) |
 | Java | `java` | jdtls | [docs/providers/java.md](docs/providers/java.md) |
 | C# / .NET | `cs` | omnisharp (roslyn opt-in) | [docs/providers/csharp.md](docs/providers/csharp.md) |
+| F# / .NET | `fsharp` | fsautocomplete | [docs/providers/fsharp.md](docs/providers/fsharp.md) |
 | Ruby | `ruby`, `eruby` | ruby-lsp (solargraph opt-in) | [docs/providers/ruby.md](docs/providers/ruby.md) |
+| PHP | `php` | intelephense (phpactor opt-in) | [docs/providers/php.md](docs/providers/php.md) |
+| Swift | `swift` | sourcekit-lsp | [docs/providers/swift.md](docs/providers/swift.md) |
+| Kotlin | `kotlin` | kotlin-language-server | [docs/providers/kotlin.md](docs/providers/kotlin.md) |
+| Scala | `scala`, `sbt` | metals | [docs/providers/scala.md](docs/providers/scala.md) |
 | Zig | `zig`, `zir` | zls | [docs/providers/zig.md](docs/providers/zig.md) |
+| Haskell | `haskell`, `lhaskell` | haskell-language-server | [docs/providers/haskell.md](docs/providers/haskell.md) |
+| Unison | `unison` | ucm (running UCM over TCP) | [docs/providers/unison.md](docs/providers/unison.md) |
+| OCaml | `ocaml`, `ocaml.interface`, `ocamllex`, `menhir`, `dune` | ocaml-lsp | [docs/providers/ocaml.md](docs/providers/ocaml.md) |
+| Erlang | `erlang` | erlang-ls | [docs/providers/erlang.md](docs/providers/erlang.md) |
+| Elixir | `elixir`, `eelixir`, `heex` | elixir-ls (lexical / next-ls opt-in) | [docs/providers/elixir.md](docs/providers/elixir.md) |
+| Clojure | `clojure`, `edn` | clojure-lsp | [docs/providers/clojure.md](docs/providers/clojure.md) |
 
 ## Install
 
@@ -93,8 +104,15 @@ require("lvim-lang").setup({
         -- cpp    = { … },   -- docs/providers/cpp.md
         -- java   = { … },   -- docs/providers/java.md
         -- csharp = { … },   -- docs/providers/csharp.md
+        -- fsharp = { … },   -- docs/providers/fsharp.md
+        -- scala  = { … },   -- docs/providers/scala.md
         -- ruby   = { … },   -- docs/providers/ruby.md
         -- zig    = { … },   -- docs/providers/zig.md
+        -- unison = { … },   -- docs/providers/unison.md
+        -- erlang = { … },   -- docs/providers/erlang.md
+        -- elixir = { … },   -- docs/providers/elixir.md
+        -- ocaml  = { … },   -- docs/providers/ocaml.md
+        -- haskell = { … },   -- docs/providers/haskell.md
     },
 })
 ```
