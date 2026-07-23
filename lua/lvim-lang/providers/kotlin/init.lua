@@ -84,6 +84,7 @@ local DATA = {
                     mason = "ktlint",
                     efm = { formatCommand = "ktlint --format --stdin --log-level=none", formatStdin = true },
                 },
+                ktfmt = { mason = "ktfmt", efm = { formatCommand = "ktfmt -", formatStdin = true } },
             },
             linters = {
                 ktlint = {
@@ -91,6 +92,22 @@ local DATA = {
                     efm = {
                         lintCommand = "ktlint --stdin --log-level=none",
                         lintStdin = true,
+                        lintFormats = { "%f:%l:%c: %m" },
+                    },
+                },
+                detekt = {
+                    mason = "detekt",
+                    efm = {
+                        lintCommand = "detekt --input ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l:%c: %m" },
+                    },
+                },
+                semgrep = {
+                    mason = "semgrep",
+                    efm = {
+                        lintCommand = "semgrep scan --config auto --quiet --error --disable-version-check --gitlab-sast ${INPUT}",
+                        lintStdin = false,
                         lintFormats = { "%f:%l:%c: %m" },
                     },
                 },

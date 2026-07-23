@@ -112,6 +112,9 @@ local DATA = {
                         formatStdin = true,
                     },
                 },
+                rufo = { mason = "rufo", efm = { formatCommand = "rufo", formatStdin = true } },
+                rubyfmt = { mason = "rubyfmt", efm = { formatCommand = "rubyfmt", formatStdin = true } },
+                stree = { mason = "stree", efm = { formatCommand = "stree format -", formatStdin = true } },
             },
             linters = {
                 rubocop = {
@@ -129,6 +132,14 @@ local DATA = {
                         lintCommand = "standardrb --stdin ${INPUT} --format emacs",
                         lintStdin = true,
                         lintFormats = { "%f:%l:%c: %t: %m" },
+                    },
+                },
+                semgrep = {
+                    mason = "semgrep",
+                    efm = {
+                        lintCommand = "semgrep scan --config auto --quiet --error --disable-version-check --gitlab-sast ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l:%c: %m" },
                     },
                 },
             },

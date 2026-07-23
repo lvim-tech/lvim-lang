@@ -33,6 +33,26 @@ local CLANG_TIDY = {
         rootMarkers = { "compile_commands.json", ".clang-tidy" },
     },
 }
+-- cpplint: Google's style linter (opt-in; clangd's --clang-tidy diagnoses by default).
+---@type table
+local CPPLINT = {
+    mason = "cpplint",
+    efm = {
+        lintCommand = "cpplint ${INPUT}",
+        lintStdin = false,
+        lintFormats = { "%f:%l: %m" },
+    },
+}
+-- semgrep: cross-language static analysis (opt-in; needs `--config auto` / a ruleset).
+---@type table
+local SEMGREP = {
+    mason = "semgrep",
+    efm = {
+        lintCommand = "semgrep scan --config auto --quiet --error --disable-version-check --gitlab-sast ${INPUT}",
+        lintStdin = false,
+        lintFormats = { "%f:%l:%c: %m" },
+    },
+}
 ---@type table<string, table>
 local DEBUGGERS = {
     codelldb = { mason = "codelldb" },
@@ -45,7 +65,11 @@ local DEBUGGERS = {
 local function ft_block()
     return {
         formatters = { ["clang-format"] = vim.deepcopy(CLANG_FORMAT) },
-        linters = { ["clang-tidy"] = vim.deepcopy(CLANG_TIDY) },
+        linters = {
+            ["clang-tidy"] = vim.deepcopy(CLANG_TIDY),
+            cpplint = vim.deepcopy(CPPLINT),
+            semgrep = vim.deepcopy(SEMGREP),
+        },
         debuggers = vim.deepcopy(DEBUGGERS),
         defaults = { formatter = false, linter = false, debugger = "codelldb" },
     }

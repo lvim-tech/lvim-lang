@@ -66,6 +66,12 @@ local DATA = {
                     mason = "cljfmt",
                     efm = { formatCommand = "cljfmt fix -", formatStdin = true },
                 },
+                zprint = { mason = "zprint", efm = { formatCommand = "zprint", formatStdin = true } },
+                ["zprint-clj"] = {
+                    mason = "zprint-clj",
+                    efm = { formatCommand = "zprint-clj", formatStdin = true },
+                },
+                joker = { mason = "joker", efm = { formatCommand = "joker --format -", formatStdin = true } },
             },
             linters = {
                 ["clj-kondo"] = {
@@ -74,6 +80,14 @@ local DATA = {
                         lintCommand = "clj-kondo --lint - --filename ${INPUT}",
                         lintStdin = true,
                         lintFormats = { "%f:%l:%c: %trror: %m", "%f:%l:%c: %tarning: %m" },
+                    },
+                },
+                joker = {
+                    mason = "joker",
+                    efm = {
+                        lintCommand = "joker --lint ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l:%c: %t%*[^:]: %m" },
                     },
                 },
             },

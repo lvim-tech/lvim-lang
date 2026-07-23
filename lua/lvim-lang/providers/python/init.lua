@@ -115,6 +115,28 @@ local DATA = {
                 isort = { mason = "isort", efm = { formatCommand = "isort --quiet -", formatStdin = true } },
                 autopep8 = { mason = "autopep8", efm = { formatCommand = "autopep8 -", formatStdin = true } },
                 yapf = { mason = "yapf", efm = { formatCommand = "yapf", formatStdin = true } },
+                autoflake = {
+                    mason = "autoflake",
+                    efm = {
+                        formatCommand = "autoflake --remove-all-unused-imports --remove-unused-variables --stdin-display-name ${INPUT} -",
+                        formatStdin = true,
+                    },
+                },
+                blue = { mason = "blue", efm = { formatCommand = "blue -q -", formatStdin = true } },
+                darker = {
+                    mason = "darker",
+                    efm = { formatCommand = "darker --stdin-filename ${INPUT} -", formatStdin = true },
+                },
+                docformatter = {
+                    mason = "docformatter",
+                    efm = { formatCommand = "docformatter -", formatStdin = true },
+                },
+                pyink = { mason = "pyink", efm = { formatCommand = "pyink -q -", formatStdin = true } },
+                usort = { mason = "usort", efm = { formatCommand = "usort format -", formatStdin = true } },
+                ["reorder-python-imports"] = {
+                    mason = "reorder-python-imports",
+                    efm = { formatCommand = "reorder-python-imports -", formatStdin = true },
+                },
             },
             linters = {
                 ruff = {
@@ -153,6 +175,55 @@ local DATA = {
                 pyflakes = {
                     mason = "pyflakes",
                     efm = { lintCommand = "pyflakes", lintStdin = false, lintFormats = { "%f:%l:%c %m", "%f:%l: %m" } },
+                },
+                bandit = {
+                    mason = "bandit",
+                    efm = {
+                        lintCommand = 'bandit -f custom --msg-template "{abspath}:{line}: {severity}: {test_id}: {msg}" ${INPUT}',
+                        lintStdin = false,
+                        lintFormats = { "%f:%l: %m" },
+                    },
+                },
+                pydocstyle = {
+                    mason = "pydocstyle",
+                    efm = {
+                        lintCommand = "pydocstyle ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l %m", "%f:%l:%m" },
+                    },
+                },
+                pylama = {
+                    mason = "pylama",
+                    efm = {
+                        lintCommand = "pylama --format parsable ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l:%c: %m" },
+                    },
+                },
+                refurb = {
+                    mason = "refurb",
+                    efm = { lintCommand = "refurb ${INPUT}", lintStdin = false, lintFormats = { "%f:%l:%c %m" } },
+                },
+                vulture = {
+                    mason = "vulture",
+                    efm = { lintCommand = "vulture ${INPUT}", lintStdin = false, lintFormats = { "%f:%l: %m" } },
+                },
+                flakeheaven = {
+                    mason = "flakeheaven",
+                    efm = {
+                        lintCommand = "flakeheaven lint --format default ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l:%c: %m" },
+                    },
+                },
+                -- semgrep: cross-language static analysis (needs a ruleset — `--config auto` fetches one).
+                semgrep = {
+                    mason = "semgrep",
+                    efm = {
+                        lintCommand = "semgrep scan --config auto --quiet --error --disable-version-check --gitlab-sast ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l:%c: %m" },
+                    },
                 },
             },
             debuggers = {

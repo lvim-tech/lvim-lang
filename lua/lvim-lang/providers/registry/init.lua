@@ -18,6 +18,12 @@ local M = {}
 ---@type string[]
 local DATA = {
     "lua",
+    -- Wave 4 Tier 2 — batch 1 (restores the archived nvim-config shell / r / perl / d languages + Julia).
+    "bash",
+    "r",
+    "perl",
+    "d",
+    "julia",
 }
 
 --- The declarative data-file names (for the validate harness / tooling).

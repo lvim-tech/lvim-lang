@@ -109,6 +109,7 @@ local DATA = {
                     mason = "goimports-reviser",
                     efm = { formatCommand = "goimports-reviser -output stdout ${INPUT}", formatStdin = false },
                 },
+                crlfmt = { mason = "crlfmt", efm = { formatCommand = "crlfmt ${INPUT}", formatStdin = false } },
             },
             linters = {
                 ["golangci-lint"] = {
@@ -127,6 +128,14 @@ local DATA = {
                 staticcheck = {
                     mason = "staticcheck",
                     efm = { lintCommand = "staticcheck ${INPUT}", lintStdin = false, lintFormats = { "%f:%l:%c: %m" } },
+                },
+                semgrep = {
+                    mason = "semgrep",
+                    efm = {
+                        lintCommand = "semgrep scan --config auto --quiet --error --disable-version-check --gitlab-sast ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l:%c: %m" },
+                    },
                 },
             },
             debuggers = {

@@ -44,6 +44,18 @@ local FT_BLOCK = {
             mason = "dprint",
             efm = { formatCommand = "dprint fmt --stdin ${INPUT}", formatStdin = true },
         },
+        oxfmt = { mason = "oxfmt", efm = { formatCommand = "oxfmt --stdin ${INPUT}", formatStdin = true } },
+        standardjs = {
+            mason = "standardjs",
+            bin = "standard",
+            efm = { formatCommand = "standard --stdin --fix", formatStdin = true },
+        },
+        ["ts-standard"] = {
+            mason = "ts-standard",
+            efm = { formatCommand = "ts-standard --stdin --fix", formatStdin = true },
+        },
+        -- rustywind sorts Tailwind classes (a formatter for JSX/TSX class lists).
+        rustywind = { mason = "rustywind", efm = { formatCommand = "rustywind --stdin", formatStdin = true } },
     },
     linters = {
         eslint_d = {
@@ -68,9 +80,30 @@ local FT_BLOCK = {
             mason = "oxlint",
             efm = { lintCommand = "oxlint ${INPUT}", lintStdin = false, lintFormats = { "%f:%l:%c %m" } },
         },
+        deno = {
+            mason = "deno",
+            efm = { lintCommand = "deno lint - --json", lintStdin = true, lintFormats = { "%f:%l:%c: %m" } },
+        },
+        ["quick-lint-js"] = {
+            mason = "quick-lint-js",
+            efm = {
+                lintCommand = "quick-lint-js --stdin --output-format=gnu-like --path-for-config-search ${INPUT}",
+                lintStdin = true,
+                lintFormats = { "%f:%l:%c: %trror: %m", "%f:%l:%c: %tarning: %m" },
+            },
+        },
+        semgrep = {
+            mason = "semgrep",
+            efm = {
+                lintCommand = "semgrep scan --config auto --quiet --error --disable-version-check --gitlab-sast ${INPUT}",
+                lintStdin = false,
+                lintFormats = { "%f:%l:%c: %m" },
+            },
+        },
     },
     debuggers = {
         ["js-debug-adapter"] = { mason = "js-debug-adapter" },
+        ["firefox-debug-adapter"] = { mason = "firefox-debug-adapter" },
     },
     defaults = { formatter = "prettier", linter = false, debugger = "js-debug-adapter" },
 }

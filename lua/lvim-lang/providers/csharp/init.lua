@@ -71,7 +71,16 @@ local DATA = {
                     efm = { formatCommand = "csharpier --write-stdout", formatStdin = true },
                 },
             },
-            linters = {},
+            linters = {
+                semgrep = {
+                    mason = "semgrep",
+                    efm = {
+                        lintCommand = "semgrep scan --config auto --quiet --error --disable-version-check --gitlab-sast ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l:%c: %m" },
+                    },
+                },
+            },
             debuggers = {
                 netcoredbg = { mason = "netcoredbg" },
             },

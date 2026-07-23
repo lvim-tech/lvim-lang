@@ -84,6 +84,14 @@ local DATA = {
             },
             linters = {
                 bacon = { mason = "bacon", efm = { lintCommand = "bacon --headless", lintStdin = false } },
+                semgrep = {
+                    mason = "semgrep",
+                    efm = {
+                        lintCommand = "semgrep scan --config auto --quiet --error --disable-version-check --gitlab-sast ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l:%c: %m" },
+                    },
+                },
             },
             debuggers = {
                 codelldb = { mason = "codelldb" },

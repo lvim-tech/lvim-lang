@@ -101,6 +101,14 @@ local DATA = {
                         lintFormats = { "[%t%*[A-Z]] %f:%l:%c: %m", "[%t%*[A-Z]] %f:%l: %m" },
                     },
                 },
+                semgrep = {
+                    mason = "semgrep",
+                    efm = {
+                        lintCommand = "semgrep scan --config auto --quiet --error --disable-version-check --gitlab-sast ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l:%c: %m" },
+                    },
+                },
             },
             debuggers = {
                 -- The java-debug plugin: no standalone binary — its jars load into jdtls as a bundle

@@ -60,6 +60,7 @@ local runcfg = require("lvim-lang.core.runcfg")
 ---@field project_dirs? string[]                           -- project-local bin dirs probed before mason (vendor/bin, node_modules/.bin, bin)
 ---@field tools?        (string|table)[]                   -- extra mason install-union helpers (a mason name, or { mason, bin? })
 ---@field commands?     table<string, LvimLangCommandData>
+---@field dap?          table                              -- compact DAP (see core.dap.build): { adapters, configurations, bin_dir? }
 ---@field icons?        table
 
 local M = {}
@@ -180,6 +181,16 @@ function M.build_commands(name, data)
                 local function go(bin)
                     local argv = vim.deepcopy(c.cmd)
                     argv[1] = bin or toolchain.resolve(name, tool, root) or argv[1]
+                    -- Token substitution: `${file}` → the current buffer's path, `${dir}` → the root, so a
+                    -- data command can target the file it was run from (run/check/test-file on ${file}).
+                    local file = vim.api.nvim_buf_get_name(ctx.bufnr or vim.api.nvim_get_current_buf())
+                    for i = 2, #argv do
+                        if argv[i] == "${file}" then
+                            argv[i] = file
+                        elseif argv[i] == "${dir}" then
+                            argv[i] = root
+                        end
+                    end
                     vim.list_extend(argv, args or {})
                     runner.run(name, {
                         name = label,
@@ -221,6 +232,7 @@ function M.build(data)
         lsp = vim.deepcopy(data.lsp or {}),
         ft = vim.deepcopy(data.ft or {}),
         tools = vim.deepcopy(data.tools or {}),
+        dap = data.dap, -- kept by ref (a compact DAP spec may carry inline adapter functions)
         icons = vim.deepcopy(data.icons or {}),
     }
 
@@ -334,9 +346,16 @@ function M.server_module(key)
     assert(name, "lvim-lang.declarative.server_module: no owning provider for server '" .. key .. "'")
     local spec = require("lvim-lang.registry").get(name)
     local patterns = (spec and spec.root_patterns) or { ".git" }
+    local popts_dap = (config.providers[name] or {}).dap
+    -- Only the PRIMARY server carries the DAP spec (so it registers once, not per multi-LSP server).
+    local is_primary = catalog.chosen_servers(name)[1] == key
     return {
         -- Per-filetype formatter/linter routing (chosen tools only; empty when none selected).
         efm = catalog.efm_groups(name),
+        -- Debugging: the compact DATA.dap expanded to { adapters, configurations }, resolved per root.
+        dap = (popts_dap and is_primary)
+                and require("lvim-lang.core.dap").build(name, popts_dap, current_root(patterns))
+            or nil,
         lsp = {
             root_patterns = patterns,
             --- Built fresh per root so the server binary tracks a project-pinned toolchain.

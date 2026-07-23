@@ -92,7 +92,16 @@ local DATA = {
                     efm = { formatCommand = "scalafmt --stdin --non-interactive", formatStdin = true },
                 },
             },
-            linters = {},
+            linters = {
+                semgrep = {
+                    mason = "semgrep",
+                    efm = {
+                        lintCommand = "semgrep scan --config auto --quiet --error --disable-version-check --gitlab-sast ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l:%c: %m" },
+                    },
+                },
+            },
             debuggers = {},
             defaults = { formatter = false, linter = false, debugger = false },
         },

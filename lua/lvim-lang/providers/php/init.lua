@@ -84,6 +84,27 @@ local DATA = {
                         formatStdin = false,
                     },
                 },
+                pint = {
+                    mason = "pint",
+                    efm = { formatCommand = "pint --quiet ${INPUT}; cat ${INPUT}", formatStdin = false },
+                },
+                ["pretty-php"] = { mason = "pretty-php", efm = { formatCommand = "pretty-php -", formatStdin = true } },
+                phpcbf = {
+                    mason = "phpcbf",
+                    efm = { formatCommand = "phpcbf -q -", formatStdin = true },
+                },
+                ["easy-coding-standard"] = {
+                    mason = "easy-coding-standard",
+                    bin = "ecs",
+                    efm = {
+                        formatCommand = "ecs check --fix --no-progress-bar --no-interaction ${INPUT}; cat ${INPUT}",
+                        formatStdin = false,
+                    },
+                },
+                duster = {
+                    mason = "duster",
+                    efm = { formatCommand = "duster fix ${INPUT}; cat ${INPUT}", formatStdin = false },
+                },
             },
             linters = {
                 phpstan = {
@@ -94,6 +115,38 @@ local DATA = {
                         lintIgnoreExitCode = true,
                         lintFormats = { "%f:%l:%m" },
                         rootMarkers = { "phpstan.neon", "phpstan.neon.dist", "phpstan.dist.neon" },
+                    },
+                },
+                phpcs = {
+                    mason = "phpcs",
+                    efm = {
+                        lintCommand = "phpcs --report=emacs -q --stdin-path=${INPUT} -",
+                        lintStdin = true,
+                        lintFormats = { "%f:%l:%c: %trror - %m", "%f:%l:%c: %tarning - %m" },
+                    },
+                },
+                phpmd = {
+                    mason = "phpmd",
+                    efm = {
+                        lintCommand = "phpmd ${INPUT} text cleancode,codesize,controversial,design,naming,unusedcode",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l%*[	 ]%m" },
+                    },
+                },
+                tlint = {
+                    mason = "tlint",
+                    efm = {
+                        lintCommand = "tlint lint ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l:%c: %m", "%f:%l %m" },
+                    },
+                },
+                semgrep = {
+                    mason = "semgrep",
+                    efm = {
+                        lintCommand = "semgrep scan --config auto --quiet --error --disable-version-check --gitlab-sast ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l:%c: %m" },
                     },
                 },
             },
