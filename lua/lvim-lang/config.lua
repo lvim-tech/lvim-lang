@@ -40,6 +40,18 @@
 ---@field icons        LvimLangIconsConfig        Generic core UI icons (Nerd Font)
 ---@field disable      string[]                   Built-in provider names to SKIP at setup (so you can register your own with that name — a clean replace with no config bleed / lingering LSP server)
 ---@field providers    table<string, table>       Per-language option blocks (merged by each provider)
+---@field companions   table<string, LvimLangCompanionConfig>  Secondary LSP servers that co-attach across many providers' filetypes (emmet / tailwind / stylelint / angular)
+
+---@class LvimLangCompanionConfig
+---@field enabled?       boolean    Register this companion (default true). false = never attached
+---@field mason?         string     Mason package (also the install offered by lvim-installer)
+---@field bin?           string     Executable when it differs from the mason package name
+---@field cmd?           string[]   Spawn argv; a "${root}" element is replaced with the resolved project root. Default { mason }
+---@field filetypes      string[]   The (cross-provider) filetypes this server co-attaches to
+---@field require_root?  boolean    Only start where a `root_patterns` marker exists (config() returns nil otherwise) — for project-scoped servers (tailwind / angular)
+---@field root_patterns? string[]   Markers that resolve the project root (and gate `require_root`)
+---@field settings?      table      LSP `settings` (sent only when non-empty)
+---@field init_options?  table      LSP `initializationOptions` (sent only when non-empty)
 
 ---@type LvimLangConfig
 return {
@@ -102,4 +114,79 @@ return {
     -- keys through setup({ providers = { dart = { … } } }).
     ---@type table<string, table>
     providers = {},
+
+    -- Companion (secondary) LSP servers that co-attach across the filetypes of MANY providers —
+    -- they belong to no single language, so they live here rather than in a provider block. Each is
+    -- fanned to the SAME additive lvim-ls seam a provider's server uses (several clients per buffer);
+    -- a `require_root` companion only starts where its marker exists (config() gate). Disable one with
+    -- `enabled = false`; add your own by putting another key here. See lvim-lang.core.companions.
+    ---@type table<string, LvimLangCompanionConfig>
+    companions = {
+        -- Emmet abbreviation expansion — wanted in every markup / component buffer, no project marker.
+        ["emmet-language-server"] = {
+            enabled = true,
+            mason = "emmet-language-server",
+            cmd = { "emmet-language-server", "--stdio" },
+            filetypes = {
+                "html",
+                "css",
+                "scss",
+                "less",
+                "sass",
+                "javascriptreact",
+                "typescriptreact",
+                "vue",
+                "svelte",
+                "astro",
+            },
+        },
+        -- Tailwind utility-class IntelliSense — project-scoped: only in a repo with a tailwind/postcss config.
+        ["tailwindcss-language-server"] = {
+            enabled = true,
+            mason = "tailwindcss-language-server",
+            cmd = { "tailwindcss-language-server", "--stdio" },
+            filetypes = {
+                "html",
+                "css",
+                "scss",
+                "less",
+                "sass",
+                "javascript",
+                "javascriptreact",
+                "typescript",
+                "typescriptreact",
+                "vue",
+                "svelte",
+                "astro",
+            },
+            require_root = true,
+            root_patterns = {
+                "tailwind.config.js",
+                "tailwind.config.cjs",
+                "tailwind.config.mjs",
+                "tailwind.config.ts",
+                "postcss.config.js",
+                "postcss.config.cjs",
+            },
+        },
+        -- Stylelint as an LSP (diagnostics + fix) for stylesheet buffers.
+        ["stylelint-lsp"] = {
+            enabled = true,
+            mason = "stylelint-lsp",
+            cmd = { "stylelint-lsp", "--stdio" },
+            filetypes = { "css", "scss", "less", "sass" },
+            settings = { stylelintplus = {} },
+        },
+        -- Angular framework server — project-scoped (an Angular / Nx workspace). ngserver needs both its
+        -- own and the project's TS probe locations; the "${root}" tokens are filled per attach.
+        ["angular-language-server"] = {
+            enabled = true,
+            mason = "angular-language-server",
+            bin = "ngserver",
+            cmd = { "ngserver", "--stdio", "--tsProbeLocations", "${root}", "--ngProbeLocations", "${root}" },
+            filetypes = { "typescript", "html" },
+            require_root = true,
+            root_patterns = { "angular.json", "project.json", "nx.json" },
+        },
+    },
 }

@@ -268,6 +268,24 @@ commands / debugging model as the bespoke providers (the compiled ones — Cryst
 Nim / V / Odin / Ada / Hare / Vala / Pascal — debug natively through codelldb); see
 docs/providers/<name>.md.
 
+Declarative Tier 3 providers (config / markup / data): HTML, CSS/SCSS/LESS, JSON,
+YAML, TOML, Markdown, XML and GraphQL. These have no compile / test step, so each ships
+the LSP plus a rich per-filetype formatter / linter catalog (all Mason, opt-in), and
+lvim-build offers file-level VALIDATE actions (prettier --check, yamllint, markdownlint,
+taplo check, xmllint …) in place of build/test.
+
+Companion servers (config.companions, lvim-lang.core.companions) are SECONDARY LSP
+servers that belong to no single language and co-attach across the filetypes of many
+providers: emmet-language-server (abbreviations), tailwindcss-language-server (utility
+classes), stylelint-lsp (a linter-as-LSP), angular-language-server (a framework server).
+Each is fanned to the SAME additive lvim-ls seam a provider's server uses — several
+clients per buffer — keyed by its own cross-provider filetype list; it is NOT provider
+data and never touches the core.declarative factory. A project-scoped companion
+(require_root = true: tailwind, angular) starts ONLY where its root_patterns marker
+exists — the server config() returns nil elsewhere, so it never spawns in a plain
+CSS / TypeScript buffer. Configure or disable each under `companions` (enabled / mason /
+cmd / filetypes / root_patterns / settings); add your own by putting another key there.
+
 ==============================================================================
 8. HEALTH                                                      *lvim-lang-health*
 

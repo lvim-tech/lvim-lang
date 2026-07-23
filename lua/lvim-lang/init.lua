@@ -80,6 +80,10 @@ function M.setup(opts)
     -- Declarative providers (the Tier 2/3/4 long tail): built from data records through core.declarative
     -- and mass-registered here, honouring config.disable exactly like the bespoke built-ins above.
     require("lvim-lang.providers.registry").setup(disabled)
+    -- Companion (secondary) LSP servers that co-attach across many providers' filetypes (emmet /
+    -- tailwind / stylelint / angular). Registered AFTER the providers, through the same additive
+    -- lvim-ls seam; honours config.disable exactly like a provider name.
+    require("lvim-lang.core.companions").setup(disabled)
     commands.setup()
 end
 

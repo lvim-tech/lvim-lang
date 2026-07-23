@@ -68,6 +68,46 @@ unified `lvim-installer` popup when you open a file.
 | Grain | `grain` | grain (`grain lsp`) | [docs/providers/grain.md](docs/providers/grain.md) |
 | Common Lisp | `lisp` | cl-lsp (SLIME/Sly) | [docs/providers/commonlisp.md](docs/providers/commonlisp.md) |
 | Pascal | `pascal` | pasls | [docs/providers/pascal.md](docs/providers/pascal.md) |
+| HTML | `html` | html-lsp (+emmet/tailwind) | [docs/providers/html.md](docs/providers/html.md) |
+| CSS / SCSS / LESS | `css`, `scss`, `less`, `sass` | css-lsp (+stylelint/tailwind) | [docs/providers/css.md](docs/providers/css.md) |
+| JSON | `json`, `jsonc` | json-lsp | [docs/providers/json.md](docs/providers/json.md) |
+| YAML | `yaml` | yaml-language-server | [docs/providers/yaml.md](docs/providers/yaml.md) |
+| TOML | `toml` | taplo | [docs/providers/toml.md](docs/providers/toml.md) |
+| Markdown | `markdown` | marksman | [docs/providers/markdown.md](docs/providers/markdown.md) |
+| XML | `xml`, `xsd`, `xsl`, `svg` | lemminx | [docs/providers/xml.md](docs/providers/xml.md) |
+| GraphQL | `graphql` | graphql-language-service-cli | [docs/providers/graphql.md](docs/providers/graphql.md) |
+
+### Companion servers
+
+Some LSP servers belong to no single language — they **co-attach** across the filetypes of many
+providers. `lvim-lang` registers these through the same additive seam a provider's server uses (so
+several clients attach to one buffer), keyed by their own cross-provider filetype list. A
+project-scoped companion only starts where its marker exists (it is otherwise silently skipped).
+
+| Companion | Mason | Co-attaches to | Project marker |
+| --- | --- | --- | --- |
+| Emmet | emmet-language-server | html, css/scss/less/sass, jsx/tsx, vue, svelte, astro | — (always) |
+| Tailwind CSS | tailwindcss-language-server | html, css/scss/less/sass, js/jsx/ts/tsx, vue, svelte, astro | `tailwind.config.*` / `postcss.config.*` |
+| Stylelint | stylelint-lsp | css, scss, less, sass | — (always) |
+| Angular | angular-language-server | typescript, html | `angular.json` / `project.json` / `nx.json` |
+
+Each is fully configurable under `companions` — enable/disable, change `filetypes`, `cmd`, `settings`,
+or add your own:
+
+```lua
+require("lvim-lang").setup({
+    companions = {
+        ["stylelint-lsp"] = { enabled = false }, -- turn one off
+        ["my-companion"] = { -- add your own
+            mason = "some-language-server",
+            cmd = { "some-language-server", "--stdio" },
+            filetypes = { "html", "css" },
+            require_root = true,
+            root_patterns = { "some.config.js" },
+        },
+    },
+})
+```
 
 ## Install
 

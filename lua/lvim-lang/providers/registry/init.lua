@@ -45,6 +45,15 @@ local DATA = {
     "grain",
     "commonlisp",
     "pascal",
+    -- Wave 5 Tier 3 — batch 4 (config / markup / data).
+    "html",
+    "css",
+    "json",
+    "yaml",
+    "toml",
+    "markdown",
+    "xml",
+    "graphql",
 }
 
 --- The declarative data-file names (for the validate harness / tooling).
