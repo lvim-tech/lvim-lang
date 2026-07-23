@@ -95,6 +95,13 @@ unified `lvim-installer` popup when you open a file.
 | Prolog | `prolog` | swipl (lsp_server) | [docs/providers/prolog.md](docs/providers/prolog.md) |
 | PowerShell | `ps1` | powershell-editor-services | [docs/providers/powershell.md](docs/providers/powershell.md) |
 | Assembly | `asm`, `nasm` | asm-lsp | [docs/providers/assembly.md](docs/providers/assembly.md) |
+| Jsonnet | `jsonnet`, `libsonnet` | jsonnet-language-server | [docs/providers/jsonnet.md](docs/providers/jsonnet.md) |
+| CUE | `cue` | cuelsp | [docs/providers/cue.md](docs/providers/cue.md) |
+| Starlark / Bazel | `bzl`, `starlark` | starpls | [docs/providers/starlark.md](docs/providers/starlark.md) |
+| Nginx | `nginx` | nginx-language-server | [docs/providers/nginx.md](docs/providers/nginx.md) |
+| Vimscript | `vim` | vim-language-server | [docs/providers/vim.md](docs/providers/vim.md) |
+| LaTeX | `tex`, `bib`, `plaintex` | texlab | [docs/providers/latex.md](docs/providers/latex.md) |
+| CMake | `cmake` | cmake-language-server | [docs/providers/cmake.md](docs/providers/cmake.md) |
 
 ### Companion servers
 

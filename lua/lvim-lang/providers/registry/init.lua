@@ -76,6 +76,14 @@ local DATA = {
     "prolog",
     "powershell",
     "assembly",
+    -- Wave 8 Tier 3 — batch 8 (config / DSL + archived-config leftovers: vim / latex / cmake).
+    "jsonnet",
+    "cue",
+    "starlark",
+    "nginx",
+    "vim",
+    "latex",
+    "cmake",
 }
 
 --- The declarative data-file names (for the validate harness / tooling).

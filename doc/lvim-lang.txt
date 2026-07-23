@@ -296,6 +296,13 @@ Fortran (`fpm test`), Tcl (tcltest), Solidity (`forge test`) and PowerShell (Pes
 Prolog have no Mason LSP — their servers (superbol / matlab-language-server / swipl's
 lsp_server) resolve from PATH and are installed manually.
 
+Declarative Tier 3 providers (config / DSL + archived-config leftovers): Jsonnet, CUE,
+Starlark/Bazel, Nginx, Vimscript, LaTeX and CMake. LSP + catalog + (where a checker fits)
+a lvim-build validate/build action — jsonnetfmt, cue vet, buildifier, latexmk, cmake-lint.
+vim / latex / cmake complete the migration of the old per-server LSP config (every other
+archived server is already a provider or a companion). No test framework / DAP for this
+group.
+
 Companion servers (config.companions, lvim-lang.core.companions) are SECONDARY LSP
 servers that belong to no single language and co-attach across the filetypes of many
 providers: emmet-language-server (abbreviations), tailwindcss-language-server (utility
