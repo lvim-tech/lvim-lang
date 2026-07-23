@@ -151,13 +151,24 @@ require("lvim-lang").setup({
                         bin = "vscode-eslint-language-server",
                         filetypes = { "typescript", "typescriptreact", "javascript", "javascriptreact" },
                         role = "diagnostics",
+                        -- vscode-eslint requests config SECTION-LESS → these sit at the TOP LEVEL of
+                        -- `settings` (not nested under `eslint`); the server module injects
+                        -- workspaceFolder / nodePath / experimental.useFlatConfig per project root.
                         settings = {
-                            eslint = {
-                                validate = "on",
-                                run = "onType",
-                                format = false, -- prettier owns formatting
-                                workingDirectories = { mode = "auto" },
-                                problems = { shortenToSingleLine = false },
+                            validate = "on",
+                            run = "onType",
+                            format = false, -- prettier owns formatting
+                            quiet = false,
+                            onIgnoredFiles = "off",
+                            useESLintClass = false,
+                            nodePath = "",
+                            rulesCustomizations = {},
+                            problems = { shortenToSingleLine = false },
+                            workingDirectory = { mode = "location" },
+                            codeActionOnSave = { enable = false, mode = "all" },
+                            codeAction = {
+                                disableRuleComment = { enable = true, location = "separateLine" },
+                                showDocumentation = { enable = true },
                             },
                         },
                     },

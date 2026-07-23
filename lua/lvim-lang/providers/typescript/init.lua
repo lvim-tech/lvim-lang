@@ -135,14 +135,27 @@ local DEFAULTS = {
                 bin = "vscode-eslint-language-server",
                 filetypes = FILETYPES,
                 role = "diagnostics", -- eslint lint diagnostics + fix-all code action
-                -- prettier owns formatting; the eslint LSP only lints / fixes.
+                -- prettier owns formatting; the eslint LSP only lints / fixes. vscode-eslint requests
+                -- its configuration SECTION-LESS, so these live at the TOP LEVEL of `settings` (not
+                -- nested under `eslint`); the server module injects `workspaceFolder` / `nodePath` /
+                -- `experimental.useFlatConfig` per project root (they must be defined, else the server
+                -- throws "path … undefined" on textDocument/diagnostic).
                 settings = {
-                    eslint = {
-                        validate = "on",
-                        run = "onType",
-                        format = false,
-                        workingDirectories = { mode = "auto" },
-                        problems = { shortenToSingleLine = false },
+                    validate = "on",
+                    run = "onType",
+                    format = false,
+                    quiet = false,
+                    onIgnoredFiles = "off",
+                    packageManager = nil,
+                    useESLintClass = false,
+                    nodePath = "",
+                    rulesCustomizations = {}, -- valid empty ARRAY ([]); an empty OBJECT field would mis-encode
+                    problems = { shortenToSingleLine = false },
+                    workingDirectory = { mode = "location" },
+                    codeActionOnSave = { enable = false, mode = "all" },
+                    codeAction = {
+                        disableRuleComment = { enable = true, location = "separateLine" },
+                        showDocumentation = { enable = true },
                     },
                 },
             },

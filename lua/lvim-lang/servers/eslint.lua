@@ -67,20 +67,35 @@ return {
         --- Built fresh per root so the eslint server binary is resolved per project.
         ---@return table
         config = function()
+            local root = current_root()
             local so = server_opts()
-            local eslint = toolchain.resolve("typescript", "eslint-lsp", current_root())
-                or "vscode-eslint-language-server"
+            local eslint = toolchain.resolve("typescript", "eslint-lsp", root) or "vscode-eslint-language-server"
+            -- vscode-eslint requests its configuration SECTION-LESS, so Neovim returns the WHOLE
+            -- `settings` table — the fields must sit at the TOP LEVEL (not nested under `eslint`). The
+            -- server dereferences `settings.workspaceFolder.uri` and `settings.nodePath` to build paths;
+            -- when either is undefined it throws `The "path" argument must be of type string. Received
+            -- undefined` on textDocument/diagnostic. So inject a per-root workspaceFolder, a string
+            -- nodePath, and the flat-config flag derived from the project's config file.
+            local settings = vim.deepcopy(so.settings or {})
+            settings.workspaceFolder = { uri = vim.uri_from_fname(root), name = vim.fn.fnamemodify(root, ":t") }
+            if type(settings.nodePath) ~= "string" then
+                settings.nodePath = ""
+            end
+            local flat = false
+            for _, f in ipairs({ "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs", "eslint.config.ts" }) do
+                if vim.fn.filereadable(vim.fs.joinpath(root, f)) == 1 then
+                    flat = true
+                    break
+                end
+            end
+            settings.experimental = { useFlatConfig = flat }
             local cfg = {
                 cmd = { eslint, "--stdio" },
                 filetypes = FILETYPES,
                 capabilities = capabilities(),
                 on_attach = catalog.lsp_on_attach("typescript", "eslint"),
+                settings = settings,
             }
-            -- Only send non-empty tables: an empty Lua table encodes as a JSON ARRAY ([]), rejected.
-            -- The server requests the `eslint` configuration section, matched from settings.eslint.
-            if so.settings and next(so.settings) then
-                cfg.settings = so.settings
-            end
             return cfg
         end,
     },
