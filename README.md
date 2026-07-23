@@ -27,6 +27,9 @@ unified `lvim-installer` popup when you open a file.
 | Rust | `rust` | rust-analyzer | [docs/providers/rust.md](docs/providers/rust.md) |
 | Python | `python` | basedpyright + ruff | [docs/providers/python.md](docs/providers/python.md) |
 | TypeScript / JavaScript | `typescript`, `typescriptreact`, `javascript`, `javascriptreact` | vtsls + eslint | [docs/providers/typescript.md](docs/providers/typescript.md) |
+| C / C++ | `c`, `cpp`, `objc`, `objcpp` | clangd | [docs/providers/cpp.md](docs/providers/cpp.md) |
+| Java | `java` | jdtls | [docs/providers/java.md](docs/providers/java.md) |
+| C# / .NET | `cs` | omnisharp (roslyn opt-in) | [docs/providers/csharp.md](docs/providers/csharp.md) |
 
 ## Install
 
@@ -85,6 +88,9 @@ require("lvim-lang").setup({
         -- rust   = { … },   -- docs/providers/rust.md
         -- python = { … },   -- docs/providers/python.md
         -- typescript = { … },   -- docs/providers/typescript.md
+        -- cpp    = { … },   -- docs/providers/cpp.md
+        -- java   = { … },   -- docs/providers/java.md
+        -- csharp = { … },   -- docs/providers/csharp.md
     },
 })
 ```

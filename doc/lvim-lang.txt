@@ -200,8 +200,9 @@ tasks / decorations / outline / dap / statusline / health fields). Built-in
 providers self-register on setup; external providers may register at any time.
 
 Built-in providers: Dart / Flutter (dartls), Go (gopls), Rust (rust-analyzer),
-Python (basedpyright + ruff — the first multi-LSP default) and TypeScript /
-JavaScript (vtsls + eslint). Each owns a
+Python (basedpyright + ruff — the first multi-LSP default), TypeScript /
+JavaScript (vtsls + eslint), C/C++ (clangd), Java (jdtls) and C#/.NET
+(omnisharp, roslyn opt-in). Each owns a
 per-filetype catalog of LSP server(s), formatters, linters and debuggers — you
 pick the active tools and override any setting, and the chosen tools install
 through the unified lvim-installer popup on file open. Full options and catalogs
