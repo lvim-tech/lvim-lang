@@ -54,6 +54,14 @@ local DATA = {
     "markdown",
     "xml",
     "graphql",
+    -- Wave 5 Tier 3 — batch 5 (infra / DevOps).
+    "dockerfile",
+    "terraform",
+    "nix",
+    "sql",
+    "proto",
+    "helm",
+    "ansible",
 }
 
 --- The declarative data-file names (for the validate harness / tooling).

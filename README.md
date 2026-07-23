@@ -76,6 +76,13 @@ unified `lvim-installer` popup when you open a file.
 | Markdown | `markdown` | marksman | [docs/providers/markdown.md](docs/providers/markdown.md) |
 | XML | `xml`, `xsd`, `xsl`, `svg` | lemminx | [docs/providers/xml.md](docs/providers/xml.md) |
 | GraphQL | `graphql` | graphql-language-service-cli | [docs/providers/graphql.md](docs/providers/graphql.md) |
+| Dockerfile | `dockerfile` | dockerfile-language-server | [docs/providers/dockerfile.md](docs/providers/dockerfile.md) |
+| Terraform / HCL | `terraform`, `hcl` | terraform-ls | [docs/providers/terraform.md](docs/providers/terraform.md) |
+| Nix | `nix` | nil | [docs/providers/nix.md](docs/providers/nix.md) |
+| SQL | `sql`, `mysql`, `plsql` | sqls | [docs/providers/sql.md](docs/providers/sql.md) |
+| Protocol Buffers | `proto` | protols | [docs/providers/proto.md](docs/providers/proto.md) |
+| Helm | `helm` | helm-ls | [docs/providers/helm.md](docs/providers/helm.md) |
+| Ansible | `yaml.ansible`, `ansible` | ansible-language-server | [docs/providers/ansible.md](docs/providers/ansible.md) |
 
 ### Companion servers
 

@@ -274,6 +274,13 @@ the LSP plus a rich per-filetype formatter / linter catalog (all Mason, opt-in),
 lvim-build offers file-level VALIDATE actions (prettier --check, yamllint, markdownlint,
 taplo check, xmllint …) in place of build/test.
 
+Declarative Tier 3 providers (infra / DevOps): Dockerfile, Terraform/HCL, Nix, SQL,
+Protocol Buffers, Helm and Ansible. LSP + catalog + a lvim-build VALIDATE action
+(hadolint, tflint, statix, sqlfluff, buf lint, helm lint, ansible-lint). Two of these
+have a REAL test runner, so they additionally get a lvim-test adapter: Terraform
+(`terraform test`, *.tftest.hcl) and Ansible (`molecule test`). The rest have no test
+framework, so none is fabricated.
+
 Companion servers (config.companions, lvim-lang.core.companions) are SECONDARY LSP
 servers that belong to no single language and co-attach across the filetypes of many
 providers: emmet-language-server (abbreviations), tailwindcss-language-server (utility
