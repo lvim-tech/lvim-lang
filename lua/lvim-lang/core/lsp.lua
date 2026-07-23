@@ -1,7 +1,7 @@
 -- lvim-lang.core.lsp: the bridge to lvim-lsp / lvim-ls.
 -- lvim-lang NEVER owns an LSP lifecycle. A provider declares a CATALOG of servers (in
 -- config.providers.<name>.lsp.servers) with a `default` that may be a string or a list; this
--- module fans that selection out to lvim-ls' additive register_language seam — one file_types
+-- module fans that selection out to lvim-ls' additive register_language seam — one language
 -- entry per chosen server (so several LSP clients can attach to the same buffer). The chosen
 -- formatters / linters / debuggers / extra tools (from core.catalog.union_entry) ride on the
 -- PRIMARY server's entry, so lvim-installer offers exactly the selected tools. The canonical
@@ -17,7 +17,7 @@ local DIR_PREFIX = "lvim-lang.servers"
 
 local M = {}
 
---- A file_types `lsp` list item for a server catalog entry (a string, or { name, bin } when the
+--- A language-entry `lsp` list item for a server catalog entry (a string, or { name, bin } when the
 --- binary differs), or nil when the server ships no mason package (e.g. dartls, bundled with the SDK).
 ---@param se table  server catalog entry
 ---@return string|table|nil
@@ -46,7 +46,7 @@ function M.register_catalog(name)
     for i, key in ipairs(chosen) do
         local se = catalog.server_entry(name, key) or {}
         local item = lsp_item(se)
-        -- A plain lvim-ls file_types entry ({ filetypes, lsp, formatters?, linters?, debuggers?, tools? }).
+        -- A plain lvim-ls language entry ({ filetypes, lsp, formatters?, linters?, debuggers?, tools? }).
         local entry = { filetypes = se.filetypes or union.filetypes, lsp = item and { item } or {} }
         if i == 1 then
             -- Primary server carries the tool union so those installs are offered once.

@@ -3,7 +3,7 @@
 -- each ft carries a catalog of formatters / linters / debuggers with a default (or `false` = none),
 -- plus an LSP server catalog with a default that may be a STRING or a LIST (multi-LSP). The user
 -- picks through config.providers.<name> and this module turns catalog-data + user-choice into:
---   * install_entry() — the lvim-ls file_types entry (install UNION of the chosen servers' + tools'
+--   * install_entry() — the lvim-ls language entry (install UNION of the chosen servers' + tools'
 --     mason packages) that register_language merges, so lvim-installer offers exactly the selected
 --     tools through the existing prompt. formatters/linters go in their buckets, debuggers in theirs,
 --     and any non-LSP/fmt/lint/dbg helper in the generic `tools` bucket.
@@ -83,7 +83,7 @@ local function tool_entry(name, ft, kind, key)
     return (ftblock[kind .. "s"] or {})[key]
 end
 
---- Append a mason tool to a file_types list (a string, or { name, bin = … } when the binary name
+--- Append a mason tool to a language-entry list (a string, or { name, bin = … } when the binary name
 --- differs), de-duplicated by mason name.
 ---@param list table
 ---@param seen table<string, boolean>
