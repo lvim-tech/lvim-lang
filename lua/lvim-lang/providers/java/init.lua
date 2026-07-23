@@ -197,6 +197,13 @@ local spec = {
             jdk.requirement(root),
         }
     end,
+    -- First Java buffer in a root: install the `jdt://` handler so go-to-definition into a library class
+    -- (whose source jar is not attached) opens jdtls's decompiled source instead of an empty buffer.
+    ---@param _root string
+    ---@param _bufnr integer
+    on_activate = function(_root, _bufnr)
+        require("lvim-lang.providers.java.decompile").setup()
+    end,
     health = health,
 }
 

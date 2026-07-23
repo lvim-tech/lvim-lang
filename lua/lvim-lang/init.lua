@@ -25,7 +25,8 @@ local M = {}
 -- Built-in providers loaded by setup(); each module self-registers on require. Growing this
 -- list is how a new first-party language provider ships.
 ---@type string[]
-local BUILTIN_PROVIDERS = { "dart", "go", "rust", "python", "typescript", "cpp", "java", "csharp" }
+local BUILTIN_PROVIDERS =
+    { "dart", "go", "rust", "python", "typescript", "cpp", "java", "csharp", "ruby", "swift", "php", "kotlin", "zig" }
 
 ---@type boolean
 local registered = false
@@ -43,8 +44,17 @@ function M.setup(opts)
     end
     registered = true
 
+    -- Load every built-in provider EXCEPT those the user disabled — a disabled name is left free for
+    -- an external provider to claim it (a clean replace: the built-in never registers, so nothing of it
+    -- lingers). See config.disable.
+    local disabled = {}
+    for _, name in ipairs(config.disable or {}) do
+        disabled[name] = true
+    end
     for _, name in ipairs(BUILTIN_PROVIDERS) do
-        require("lvim-lang.providers." .. name)
+        if not disabled[name] then
+            require("lvim-lang.providers." .. name)
+        end
     end
     commands.setup()
 end

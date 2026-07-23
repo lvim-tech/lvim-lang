@@ -24,7 +24,8 @@ lvim-ui.
 
 Activation is lazy and per project root: nothing is wired for a language until
 the first buffer of its filetype is opened. Built-in providers: Dart/Flutter,
-Go and Rust (see docs/providers/<name>.md).
+Go, Rust, Python, TypeScript, C/C++, Java, C# and Ruby (see
+docs/providers/<name>.md).
 
 ==============================================================================
 2. SETUP                                                        *lvim-lang-setup*
@@ -199,10 +200,18 @@ A provider is a Lua module that calls
 tasks / decorations / outline / dap / statusline / health fields). Built-in
 providers self-register on setup; external providers may register at any time.
 
+Registering a NAME that is already taken REPLACES that provider's spec (and
+unregisters its LSP server). To cleanly REPLACE a BUILT-IN with your own, list
+its name in `disable` so the built-in never loads — then no config or LSP server
+of it lingers — and register yours after setup: >lua
+    require("lvim-lang").setup({ disable = { "java" } })
+    require("lvim-lang").register(my_java_spec, my_defaults)  -- claims "java"
+<
+
 Built-in providers: Dart / Flutter (dartls), Go (gopls), Rust (rust-analyzer),
 Python (basedpyright + ruff — the first multi-LSP default), TypeScript /
-JavaScript (vtsls + eslint), C/C++ (clangd), Java (jdtls) and C#/.NET
-(omnisharp, roslyn opt-in). Each owns a
+JavaScript (vtsls + eslint), C/C++ (clangd), Java (jdtls), C#/.NET
+(omnisharp, roslyn opt-in) and Ruby (ruby-lsp, solargraph opt-in). Each owns a
 per-filetype catalog of LSP server(s), formatters, linters and debuggers — you
 pick the active tools and override any setting, and the chosen tools install
 through the unified lvim-installer popup on file open. Full options and catalogs

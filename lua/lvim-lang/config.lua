@@ -38,6 +38,7 @@
 ---@field statusline   boolean                    Whether providers contribute a statusline segment
 ---@field layout       LvimLangLayout             GLOBAL default panel placement (each panel may override)
 ---@field icons        LvimLangIconsConfig        Generic core UI icons (Nerd Font)
+---@field disable      string[]                   Built-in provider names to SKIP at setup (so you can register your own with that name — a clean replace with no config bleed / lingering LSP server)
 ---@field providers    table<string, table>       Per-language option blocks (merged by each provider)
 
 ---@type LvimLangConfig
@@ -45,6 +46,12 @@ return {
     -- Master switch. Turned off, the FileType activation in lvim-lang.registry is a no-op
     -- for every language, so nothing (LSP, decorations, runners) is wired up.
     enabled = true,
+
+    -- Built-in providers to SKIP at setup — the name of any built-in (e.g. "java") listed here is
+    -- NOT loaded, so you can `require("lvim-lang").register(your_spec, defaults)` under that same name
+    -- for a CLEAN replacement: the built-in never seeds its config or fans its LSP server out, so there
+    -- is no config bleed and no lingering old server. Register your own AFTER setup().
+    disable = {},
 
     -- Shared dev-log panel. A provider's structured runner streams non-protocol output here
     -- (Flutter's app.log, cargo's human lines, …); the panel looks and behaves identically for

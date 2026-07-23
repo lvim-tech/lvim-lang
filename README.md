@@ -30,6 +30,8 @@ unified `lvim-installer` popup when you open a file.
 | C / C++ | `c`, `cpp`, `objc`, `objcpp` | clangd | [docs/providers/cpp.md](docs/providers/cpp.md) |
 | Java | `java` | jdtls | [docs/providers/java.md](docs/providers/java.md) |
 | C# / .NET | `cs` | omnisharp (roslyn opt-in) | [docs/providers/csharp.md](docs/providers/csharp.md) |
+| Ruby | `ruby`, `eruby` | ruby-lsp (solargraph opt-in) | [docs/providers/ruby.md](docs/providers/ruby.md) |
+| Zig | `zig`, `zir` | zls | [docs/providers/zig.md](docs/providers/zig.md) |
 
 ## Install
 
@@ -91,6 +93,8 @@ require("lvim-lang").setup({
         -- cpp    = { … },   -- docs/providers/cpp.md
         -- java   = { … },   -- docs/providers/java.md
         -- csharp = { … },   -- docs/providers/csharp.md
+        -- ruby   = { … },   -- docs/providers/ruby.md
+        -- zig    = { … },   -- docs/providers/zig.md
     },
 })
 ```

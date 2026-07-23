@@ -126,6 +126,18 @@ local M = {}
 ---@return nil
 function M.register(spec, defaults)
     assert(type(spec) == "table" and spec.name, "lvim-lang.registry.register: spec.name required")
+    -- REPLACING an already-registered provider (a user overriding one): unregister the OLD provider's
+    -- LSP server(s) from lvim-ls first (read from the still-current config, before the re-seed below), so
+    -- the replaced server does not keep running beside the new one. NB the clean way to swap a BUILT-IN is
+    -- config.disable — then it never registers and this branch is skipped (a fresh add, no config bleed).
+    if providers[spec.name] then
+        local ok_lsp, lsp = pcall(require, "lvim-lsp")
+        if ok_lsp and type(lsp.unregister_language) == "function" then
+            for _, key in ipairs(require("lvim-lang.core.catalog").chosen_servers(spec.name)) do
+                lsp.unregister_language(key)
+            end
+        end
+    end
     providers[spec.name] = spec
     for _, ft in ipairs(spec.filetypes or {}) do
         ft_index[ft] = spec.name

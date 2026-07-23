@@ -151,7 +151,9 @@ local function enclosing(bufnr)
     return class, method
 end
 
---- `:LvimLang debug` — continue / start a debug session (lvim-dap picks a configuration).
+--- `:LvimLang debug` — resolve the project's MAIN classes from jdtls and launch one under the debugger
+--- (a picker when several exist). Falls back to lvim-dap's own configuration picker — the base attach /
+--- manual-launch configs — when jdtls is not attached yet or resolves no main class.
 ---@param _args string[]
 ---@param _ctx table
 ---@return nil
@@ -161,7 +163,50 @@ function M.debug(_args, _ctx)
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)
         return
     end
-    dap.continue()
+    local client = vim.lsp.get_clients({ name = "jdtls" })[1]
+    if not client then
+        dap.continue() -- no jdtls yet → the static configurations (attach / input-based launch)
+        return
+    end
+    client:request("workspace/executeCommand", { command = "vscode.java.resolveMainClass" }, function(err, res)
+        if err or type(res) ~= "table" or #res == 0 then
+            dap.continue() -- jdtls resolved no main class → fall back to the static configs
+            return
+        end
+        --- Launch a discovered main class under the debugger.
+        ---@param mc table  a resolveMainClass entry: { mainClass, projectName?, filePath? }
+        local function launch(mc)
+            dap.run({
+                type = "java",
+                request = "launch",
+                name = "Launch " .. mc.mainClass,
+                mainClass = mc.mainClass,
+                projectName = mc.projectName,
+            })
+        end
+        if #res == 1 then
+            launch(res[1])
+            return
+        end
+        -- Several main classes → the canonical centered picker.
+        local icon = (opts().icons or {}).run or "󰐊"
+        local items = {}
+        for _, mc in ipairs(res) do
+            items[#items + 1] = {
+                label = mc.mainClass .. (mc.projectName and ("  (" .. mc.projectName .. ")") or ""),
+                icon = icon,
+            }
+        end
+        require("lvim-ui").select({
+            title = "Debug — main class",
+            items = items,
+            callback = function(confirmed, idx)
+                if confirmed and res[idx] then
+                    launch(res[idx])
+                end
+            end,
+        })
+    end)
 end
 
 --- `:LvimLang debug-test` — debug exactly the JUnit method under the cursor. Starts the build tool's
