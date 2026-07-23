@@ -21,6 +21,6 @@ A declarative Tier 2 provider (data record in `lvim-lang.providers.registry.roc`
 | `:LvimLang test` | `roc test <file>` |
 
 
-## Notes
+## Debugging
 
-Roc is experimental; debugging support is nascent, so no debugger is offered yet.
+Roc compiles to a native binary, so it debugs with **codelldb** (`program = pick`, `cwd = ${workspaceFolder}`) like the other native languages — debug-info quality depends on the still-young Roc toolchain.

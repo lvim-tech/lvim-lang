@@ -83,6 +83,10 @@ unified `lvim-installer` popup when you open a file.
 | Protocol Buffers | `proto` | protols | [docs/providers/proto.md](docs/providers/proto.md) |
 | Helm | `helm` | helm-ls | [docs/providers/helm.md](docs/providers/helm.md) |
 | Ansible | `yaml.ansible`, `ansible` | ansible-language-server | [docs/providers/ansible.md](docs/providers/ansible.md) |
+| Svelte | `svelte` | svelte-language-server (+emmet/tailwind) | [docs/providers/svelte.md](docs/providers/svelte.md) |
+| Vue | `vue` | vue-language-server (Volar) | [docs/providers/vue.md](docs/providers/vue.md) |
+| Astro | `astro` | astro-language-server | [docs/providers/astro.md](docs/providers/astro.md) |
+| Twig | `twig` | twiggy | [docs/providers/twig.md](docs/providers/twig.md) |
 
 ### Companion servers
 

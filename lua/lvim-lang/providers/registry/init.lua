@@ -62,6 +62,11 @@ local DATA = {
     "proto",
     "helm",
     "ansible",
+    -- Wave 6 Tier 3 — batch 6 (web frameworks / templating).
+    "svelte",
+    "vue",
+    "astro",
+    "twig",
 }
 
 --- The declarative data-file names (for the validate harness / tooling).

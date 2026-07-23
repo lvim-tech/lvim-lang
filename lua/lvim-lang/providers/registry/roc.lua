@@ -1,6 +1,7 @@
 -- lvim-lang.providers.registry.roc: the Roc provider (declarative Tier 2).
 -- roc_language_server is the LSP; `roc format` formats natively. `roc build` / `roc dev` (run) /
--- `roc test`. Roc is experimental; debugging support is nascent, so no debugger is offered yet.
+-- `roc test`. Roc compiles to a native binary, so it debugs with codelldb like the other native
+-- languages — debug-info quality depends on the (still-young) Roc toolchain.
 --
 ---@module "lvim-lang.providers.registry.roc"
 
@@ -24,7 +25,22 @@ return {
         roc = {
             formatters = { ["roc-format"] = { efm = { formatCommand = "roc format --stdin", formatStdin = true } } },
             linters = {},
-            defaults = { formatter = false, linter = false },
+            debuggers = { codelldb = { mason = "codelldb" } },
+            defaults = { formatter = false, linter = false, debugger = "codelldb" },
+        },
+    },
+    dap = {
+        adapters = { codelldb = { kind = "server" } },
+        configurations = {
+            roc = {
+                {
+                    adapter = "codelldb",
+                    request = "launch",
+                    name = "Launch (codelldb)",
+                    program = "pick",
+                    cwd = "${workspaceFolder}",
+                },
+            },
         },
     },
     commands = {

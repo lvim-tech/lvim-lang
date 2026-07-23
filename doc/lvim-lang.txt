@@ -281,6 +281,13 @@ have a REAL test runner, so they additionally get a lvim-test adapter: Terraform
 (`terraform test`, *.tftest.hcl) and Ansible (`molecule test`). The rest have no test
 framework, so none is fabricated.
 
+Declarative Tier 3 providers (web frameworks / templating): Svelte, Vue (Volar), Astro
+and Twig. LSP + a prettier / eslint_d catalog + a lvim-build VALIDATE action; Emmet and
+Tailwind co-attach as companions. Svelte / Vue / Astro DEBUG through js-debug (the
+pwa-chrome launch type) against the dev server (per-framework URL + webRoot). No lvim-test
+adapter — component tests run through the JavaScript test runner (vitest / jest) over the
+whole project, not per-framework. Twig's LSP (twiggy) is not in Mason — install it manually.
+
 Companion servers (config.companions, lvim-lang.core.companions) are SECONDARY LSP
 servers that belong to no single language and co-attach across the filetypes of many
 providers: emmet-language-server (abbreviations), tailwindcss-language-server (utility
