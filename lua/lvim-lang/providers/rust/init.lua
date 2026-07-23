@@ -16,6 +16,7 @@ local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
 local toolchain = require("lvim-lang.providers.rust.toolchain")
 local core_toolchain = require("lvim-lang.core.toolchain")
+local requirements = require("lvim-lang.core.requirements")
 
 ---@type table
 local DEFAULTS = {
@@ -153,6 +154,21 @@ local spec = {
     commands = require("lvim-lang.providers.rust.commands"),
     -- lvim-tasks templates (arg-less cargo dependency subcommands) — also via :LvimLang deps.
     tasks = require("lvim-lang.providers.rust.deps").templates,
+    --- Surfaced at activation + in :checkhealth: the Rust toolchain must be present (rust-analyzer needs it).
+    ---@param root string
+    ---@return LvimLangRequirement[]
+    requirements = function(root)
+        return {
+            requirements.tool_present(
+                "rust",
+                "cargo",
+                "Rust toolchain",
+                "Install the Rust toolchain via rustup and put `cargo` on PATH; rust-analyzer also needs the "
+                    .. "rust-src component (`rustup component add rust-src`).",
+                root
+            ),
+        }
+    end,
     health = health,
 }
 

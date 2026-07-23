@@ -49,11 +49,18 @@ function M.check()
         health.info("Providers: " .. table.concat(names, ", "))
     end
 
+    local reqs = require("lvim-lang.core.requirements")
+    local root = vim.uv.cwd() or "."
     for _, name in ipairs(names) do
         local provider = registry.get(name)
-        if provider and provider.health then
+        if provider and (provider.health or provider.requirements) then
             health.start("lvim-lang: " .. name)
-            provider.health(health)
+            if provider.health then
+                provider.health(health)
+            end
+            -- Declared tool/runtime requirements (JDK 21 for jdtls, Node, the .NET/Go/Rust/Dart
+            -- toolchains, a clangd compile DB, …), each reported ok / warn+hint against the cwd root.
+            reqs.health(name, root, health)
         end
     end
 end

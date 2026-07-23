@@ -17,6 +17,8 @@
 local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
 local toolchain = require("lvim-lang.core.toolchain")
+local requirements = require("lvim-lang.core.requirements")
+local jdk = require("lvim-lang.providers.java.jdk")
 
 ---@type table
 local DEFAULTS = {
@@ -180,6 +182,21 @@ local spec = {
     commands = require("lvim-lang.providers.java.commands"),
     -- lvim-tasks templates (arg-less dependency subcommands) — also runnable via :LvimLang deps.
     tasks = require("lvim-lang.providers.java.deps").templates,
+    --- Surfaced at activation + in :checkhealth: a JDK must be present, and jdtls needs it to be 21+.
+    ---@param root string
+    ---@return LvimLangRequirement[]
+    requirements = function(root)
+        return {
+            requirements.tool_present(
+                "java",
+                "java",
+                "Java runtime",
+                "Install a JDK (21+ for jdtls) and put `java` on PATH, or set providers.java.java_path.",
+                root
+            ),
+            jdk.requirement(root),
+        }
+    end,
     health = health,
 }
 

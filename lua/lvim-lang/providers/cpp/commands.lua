@@ -9,6 +9,7 @@ local tasks = require("lvim-lang.providers.cpp.tasks")
 local test = require("lvim-lang.providers.cpp.test")
 local codegen = require("lvim-lang.providers.cpp.codegen")
 local dap = require("lvim-lang.providers.cpp.dap")
+local clangd = require("lvim-lang.providers.cpp.clangd")
 local runcfg = require("lvim-lang.core.runcfg")
 
 ---@type table<string, LvimLangCommand>
@@ -19,6 +20,11 @@ local M = {
     ["test-func"] = { impl = test.func, desc = "run the GoogleTest / Catch2 test under the cursor (ctest -R)" },
     configure = { impl = tasks.configure, desc = "cmake configure into build/ (exports compile_commands.json)" },
     ["compile-commands"] = { impl = codegen.compile_commands, desc = "generate compile_commands.json (cmake / bear)" },
+    ["switch-header"] = {
+        impl = clangd.switch_header,
+        desc = "toggle the source / header file (clangd switchSourceHeader)",
+    },
+    ["symbol-info"] = { impl = clangd.symbol_info, desc = "show clangd symbol info for the symbol at the cursor" },
     debug = { impl = dap.debug, desc = "start / continue a CodeLLDB / cpptools debug session (lvim-dap)" },
     config = { impl = runcfg.command, desc = "pick the active run configuration (.lvim/lang/run.lua)" },
 }

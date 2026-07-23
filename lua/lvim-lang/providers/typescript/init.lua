@@ -18,6 +18,7 @@ local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
 local toolchain = require("lvim-lang.providers.typescript.toolchain")
 local core_toolchain = require("lvim-lang.core.toolchain")
+local requirements = require("lvim-lang.core.requirements")
 
 -- The four filetypes this provider owns.
 ---@type string[]
@@ -242,6 +243,21 @@ local spec = {
     commands = require("lvim-lang.providers.typescript.commands"),
     -- lvim-tasks templates (install / arg-less scripts) — also via :LvimLang install / script.
     tasks = require("lvim-lang.providers.typescript.tasks").templates,
+    --- Surfaced at activation + in :checkhealth: Node.js must be present (the server + eslint run on it).
+    ---@param root string
+    ---@return LvimLangRequirement[]
+    requirements = function(root)
+        return {
+            requirements.tool_present(
+                "typescript",
+                "node",
+                "Node.js runtime",
+                "Install Node.js (e.g. via mise/fnm) and put `node` on PATH; the TypeScript server and eslint "
+                    .. "run on it.",
+                root
+            ),
+        }
+    end,
     health = health,
 }
 

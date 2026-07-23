@@ -9,6 +9,7 @@
 local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
 local toolchain = require("lvim-lang.core.toolchain")
+local requirements = require("lvim-lang.core.requirements")
 local state = require("lvim-lang.state")
 
 -- Per-language defaults, merged into config.providers.dart at registration (users override via
@@ -140,6 +141,21 @@ local spec = {
     -- lvim-tasks templates (flutter pub get / upgrade) — also runnable via :LvimLang pub.
     tasks = require("lvim-lang.providers.dart.pub").templates,
     commands = require("lvim-lang.providers.dart.commands"),
+    --- Surfaced at activation + in :checkhealth: the Dart/Flutter SDK must be present (ships dartls).
+    ---@param root string
+    ---@return LvimLangRequirement[]
+    requirements = function(root)
+        return {
+            requirements.tool_present(
+                "dart",
+                "dart",
+                "Dart/Flutter SDK",
+                "Install the Dart or Flutter SDK and put `dart` (or `flutter`) on PATH; the Dart language "
+                    .. "server ships with it.",
+                root
+            ),
+        }
+    end,
     health = health,
 }
 

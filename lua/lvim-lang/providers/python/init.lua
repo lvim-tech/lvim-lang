@@ -20,6 +20,7 @@ local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
 local toolchain = require("lvim-lang.providers.python.toolchain")
 local core_toolchain = require("lvim-lang.core.toolchain")
+local requirements = require("lvim-lang.core.requirements")
 
 --- Turn OFF an LSP client capability once (per-client, so it covers every buffer of that client).
 ---@param client table  the LSP client (server_capabilities toggled in place)
@@ -246,6 +247,21 @@ local spec = {
     commands = require("lvim-lang.providers.python.commands"),
     -- lvim-tasks templates (arg-less dependency subcommands) — also via :LvimLang deps.
     tasks = require("lvim-lang.providers.python.deps").templates,
+    --- Surfaced at activation + in :checkhealth: a Python interpreter must be resolvable (server + debug).
+    ---@param root string
+    ---@return LvimLangRequirement[]
+    requirements = function(root)
+        return {
+            requirements.tool_present(
+                "python",
+                "python",
+                "Python interpreter",
+                "Select a project venv or install Python and put it on PATH (or set providers.python.python_path); "
+                    .. "the language server and debugger need it.",
+                root
+            ),
+        }
+    end,
     health = health,
 }
 

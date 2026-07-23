@@ -24,6 +24,7 @@ local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
 local toolchain = require("lvim-lang.providers.csharp.toolchain")
 local core_toolchain = require("lvim-lang.core.toolchain")
+local requirements = require("lvim-lang.core.requirements")
 
 -- Per-language defaults, merged into config.providers.csharp at registration (users override via
 -- setup({ providers = { csharp = { … } } })).
@@ -168,6 +169,21 @@ local spec = {
     commands = require("lvim-lang.providers.csharp.commands"),
     -- lvim-tasks templates (arg-less dotnet dependency subcommands) — also via :LvimLang deps.
     tasks = require("lvim-lang.providers.csharp.deps").templates,
+    --- Surfaced at activation + in :checkhealth: the .NET SDK must be present (server, build, test).
+    ---@param root string
+    ---@return LvimLangRequirement[]
+    requirements = function(root)
+        return {
+            requirements.tool_present(
+                "csharp",
+                "dotnet",
+                ".NET SDK",
+                "Install the .NET SDK and put `dotnet` on PATH (or set providers.csharp.dotnet_path); the C# "
+                    .. "server, build and test all invoke it.",
+                root
+            ),
+        }
+    end,
     health = health,
 }
 

@@ -89,7 +89,8 @@ local DEFAULTS = {
                     "--clang-tidy", -- inline clang-tidy diagnostics (no separate linter needed)
                     "--header-insertion=iwyu", -- include-what-you-use header insertion
                     "--completion-style=detailed", -- detailed completion items
-                    "--function-arg-placeholders", -- placeholders for function-call arguments
+                    "--function-arg-placeholders=true", -- placeholders for function-call arguments (NB: this
+                    -- clangd build rejects the bare flag — "requires a value!" — so the `=true` is mandatory)
                 },
                 -- clangd initializationOptions (empty by default; overridable). settings is unused —
                 -- clangd is configured via flags + a project `.clangd` file.
@@ -171,6 +172,25 @@ local spec = {
     statusline = statusline,
     toolchain = require("lvim-lang.providers.cpp.toolchain"),
     commands = require("lvim-lang.providers.cpp.commands"),
+    --- Surfaced at activation + in :checkhealth: clangd resolves symbols accurately only with a
+    --- compilation database — informational, since clangd still runs on heuristic flags without one.
+    ---@param root string
+    ---@return LvimLangRequirement[]
+    requirements = function(root)
+        local have = vim.uv.fs_stat(root .. "/compile_commands.json") ~= nil
+            or vim.uv.fs_stat(root .. "/build/compile_commands.json") ~= nil
+            or vim.uv.fs_stat(root .. "/compile_flags.txt") ~= nil
+        return {
+            {
+                label = "clangd compilation database",
+                ok = have,
+                detail = have and "compile_commands.json / compile_flags.txt found" or "none found",
+                hint = "Generate compile_commands.json (cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON, or `bear -- make`) "
+                    .. "or add compile_flags.txt, so clangd knows your include paths and flags.",
+                severity = "info",
+            },
+        }
+    end,
     health = health,
 }
 

@@ -26,6 +26,7 @@ local state = require("lvim-lang.state")
 ---@field outline?      LvimLangOutlineSpec           Alternative outline source (see core.outline)
 ---@field dap?          table                         lvim-dap adapter/configuration spec
 ---@field pkg?          fun(ft: string): table[]      Extra lvim-pkg items (toolchain/SDK deps)
+---@field requirements? fun(root: string): LvimLangRequirement[] Runtime/tool requirements to surface (see core.requirements)
 ---@field health?       fun(h: table)                 Per-provider :checkhealth section
 ---@field statusline?   fun(root: string): string     Statusline segment builder
 ---@field on_activate?  fun(root: string, bufnr: integer) First-buffer-in-root hook
@@ -73,6 +74,10 @@ local function activate(provider, root, bufnr)
         return
     end
     state.roots[root] = true
+    -- Surface any unsatisfied tool/runtime requirement (JVM too old for jdtls, missing SDK, absent
+    -- project linter, …) as a one-time notice with a resolution hint, so the user sees the problem +
+    -- the fix here rather than from a later opaque server crash. No-op when everything is satisfied.
+    require("lvim-lang.core.requirements").notify_failures(provider.name, root)
     if provider.on_activate then
         provider.on_activate(root, bufnr)
     end

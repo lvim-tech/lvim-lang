@@ -15,6 +15,7 @@
 local config = require("lvim-lang.config")
 local registry = require("lvim-lang.registry")
 local toolchain = require("lvim-lang.core.toolchain")
+local requirements = require("lvim-lang.core.requirements")
 
 -- Per-language defaults, merged into config.providers.go at registration (users override via
 -- setup({ providers = { go = { … } } })).
@@ -218,6 +219,20 @@ local spec = {
     commands = require("lvim-lang.providers.go.commands"),
     -- lvim-tasks templates (arg-less go mod subcommands) — also runnable via :LvimLang mod.
     tasks = require("lvim-lang.providers.go.mod").templates,
+    --- Surfaced at activation + in :checkhealth: the Go toolchain must be present (gopls needs it).
+    ---@param root string
+    ---@return LvimLangRequirement[]
+    requirements = function(root)
+        return {
+            requirements.tool_present(
+                "go",
+                "go",
+                "Go toolchain",
+                "Install Go and put `go` on PATH; gopls needs the go command + GOROOT.",
+                root
+            ),
+        }
+    end,
     health = health,
 }
 
