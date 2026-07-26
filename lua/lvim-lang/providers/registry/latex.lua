@@ -11,7 +11,31 @@ return {
     ft = {
         ["tex"] = {
             formatters = { ["latexindent"] = { mason = "latexindent" } },
-            linters = {},
+            -- Prose / grammar checking for LaTeX goes through the normal LINTER lifecycle — there is
+            -- no TeX-specific plumbing for it anywhere else in the ecosystem. Both tools read a .tex
+            -- file directly (vale has a LaTeX parser; proselint reads it as prose) and both are
+            -- already declared by the markdown provider, so the mason names are the ones lvim-lang
+            -- installs elsewhere. `linter = false` keeps the whole thing opt-in: nothing is chosen,
+            -- so nothing installs and nothing runs until a user picks one.
+            linters = {
+                ["vale"] = {
+                    mason = "vale",
+                    efm = {
+                        lintCommand = "vale --output=line ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l:%c:%m" },
+                        rootMarkers = { ".vale.ini", "_vale.ini" },
+                    },
+                },
+                ["proselint"] = {
+                    mason = "proselint",
+                    efm = {
+                        lintCommand = "proselint ${INPUT}",
+                        lintStdin = false,
+                        lintFormats = { "%f:%l:%c: %m" },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
         ["bib"] = {
