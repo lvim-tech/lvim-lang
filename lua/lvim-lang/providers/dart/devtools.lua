@@ -61,7 +61,11 @@ function M.open(_args, ctx)
                 local full = vm and (url .. "?uri=" .. vm) or url
                 pcall(vim.fn.setreg, "+", full)
                 vim.notify("lvim-lang: DevTools " .. full .. " (copied)", vim.log.levels.INFO, TITLE)
-                pcall(vim.ui.open, full)
+                -- Best-effort: the URL was already yanked AND shown above, so a machine without an
+                -- opener loses nothing — this only saves the user a paste. `open_url` is the shared
+                -- wrapper because `vim.ui.open` returns `nil, err` for a missing handler (it does not
+                -- raise), which a bare `pcall` cannot see.
+                require("lvim-utils.utils").open_url(full)
             end
         end,
         on_exit = function()
