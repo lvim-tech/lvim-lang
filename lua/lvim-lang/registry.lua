@@ -172,6 +172,15 @@ function M.register(spec, defaults)
         require("lvim-lang.core.outline").register(spec.outline)
     end
     rearm()
+    -- The autocmd only covers filetypes set from NOW on. A buffer whose filetype was decided BEFORE
+    -- this provider registered — `nvim main.rs` with a load order that reaches the provider after the
+    -- file is open, or a provider registered post-setup — would otherwise wait for an `:e`. Activation
+    -- is once-per-root guarded, so replaying it over the already-open buffers is safe.
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_loaded(buf) and ft_index[vim.bo[buf].filetype] == spec.name then
+            on_filetype({ buf = buf })
+        end
+    end
 end
 
 --- The provider registered under `name`, or nil.
