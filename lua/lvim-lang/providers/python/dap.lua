@@ -10,6 +10,7 @@
 ---@module "lvim-lang.providers.python.dap"
 
 local toolchain = require("lvim-lang.core.toolchain")
+local dap_core = require("lvim-lang.core.dap")
 
 local TITLE = { title = "lvim-lang" }
 
@@ -96,7 +97,7 @@ function M.spec()
                     request = "launch",
                     name = "Launch module",
                     module = function()
-                        return vim.fn.input("Module name: ")
+                        return dap_core.prompt({ title = "Module name" })
                     end,
                     cwd = "${workspaceFolder}",
                     console = "integratedTerminal",
@@ -108,7 +109,7 @@ function M.spec()
                     name = "Launch file with args",
                     program = "${file}",
                     args = function()
-                        return vim.split(vim.fn.input("Arguments: "), " +", { trimempty = true })
+                        return vim.split(dap_core.prompt({ title = "Arguments" }), " +", { trimempty = true })
                     end,
                     cwd = "${workspaceFolder}",
                     console = "integratedTerminal",

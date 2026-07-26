@@ -15,6 +15,7 @@
 local config = require("lvim-lang.config")
 local toolchain = require("lvim-lang.core.toolchain")
 local buildtool = require("lvim-lang.providers.kotlin.buildtool")
+local dap_core = require("lvim-lang.core.dap")
 
 local TITLE = { title = "lvim-lang" }
 
@@ -79,7 +80,7 @@ function M.spec()
                     name = "Launch (main class)",
                     projectRoot = "${workspaceFolder}",
                     mainClass = function()
-                        return vim.fn.input("Main class (fully-qualified, e.g. MainKt): ")
+                        return dap_core.prompt({ title = "Main class (fully-qualified, e.g. MainKt)" })
                     end,
                 },
                 {

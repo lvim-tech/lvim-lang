@@ -10,6 +10,7 @@
 ---@module "lvim-lang.providers.fsharp.dap"
 
 local toolchain = require("lvim-lang.core.toolchain")
+local dap_core = require("lvim-lang.core.dap")
 
 local TITLE = { title = "lvim-lang" }
 
@@ -46,7 +47,11 @@ function M.spec()
                     name = "Launch (pick a built DLL)",
                     program = function()
                         local root = require("lvim-lang.providers.fsharp.tasks").root()
-                        return vim.fn.input("Path to dll: ", root .. "/bin/Debug/", "file")
+                        return dap_core.prompt({
+                            title = "Path to dll",
+                            default = root .. "/bin/Debug/",
+                            completion = "file",
+                        })
                     end,
                     cwd = "${workspaceFolder}",
                     stopAtEntry = false,
@@ -60,7 +65,7 @@ function M.spec()
                         if ok and dap_utils and dap_utils.pick_process then
                             return dap_utils.pick_process()
                         end
-                        return tonumber(vim.fn.input("Process id: "))
+                        return dap_core.prompt_number({ title = "Process id" })
                     end,
                 },
             },

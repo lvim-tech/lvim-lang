@@ -10,6 +10,7 @@
 ---@module "lvim-lang.providers.swift.dap"
 
 local toolchain = require("lvim-lang.core.toolchain")
+local dap_core = require("lvim-lang.core.dap")
 
 local TITLE = { title = "lvim-lang" }
 
@@ -66,7 +67,11 @@ end
 ---@return string
 local function pick_program()
     local root = root_of(vim.api.nvim_get_current_buf())
-    return vim.fn.input("Path to executable: ", root .. "/.build/debug/", "file")
+    return dap_core.prompt({
+        title = "Path to executable",
+        default = root .. "/.build/debug/",
+        completion = "file",
+    })
 end
 
 --- The static `dap` field for the sourcekit-lsp server config (adapters + base configurations). The

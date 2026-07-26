@@ -247,19 +247,30 @@ function M.run(args, ctx)
         })
         return
     end
-    -- CMake / Make: prompt for the executable under the build dir (native cmdline input, as the DAP
-    -- launch prompt does). A run config removes the prompt by supplying `program`.
+    -- CMake / Make: ask for the executable under the build dir, through the canonical themed input. A
+    -- run config removes the prompt entirely by supplying `program`. Unlike the DAP launch prompts this
+    -- one is NOT inside a run coroutine, so it cannot be awaited — the run simply continues in the
+    -- callback, which is the same thing without a blocking prompt.
     local base = sys == "cmake" and (root .. "/" .. build_dir() .. "/") or (root .. "/")
-    local program = vim.fn.input("Path to binary: ", base, "file")
-    if not program or program == "" then
-        return
-    end
-    local cmd = { program }
-    vim.list_extend(cmd, args)
-    runner.run(
-        "cpp",
-        { name = "run " .. vim.fs.basename(program), cmd = cmd, cwd = root, group = "Run", matcher = "gcc" }
-    )
+    require("lvim-ui").input({
+        title = "Path to binary",
+        default = base,
+        completion = "file",
+        callback = function(confirmed, program)
+            if not confirmed or not program or program == "" then
+                return
+            end
+            local cmd = { program }
+            vim.list_extend(cmd, args)
+            runner.run("cpp", {
+                name = "run " .. vim.fs.basename(program),
+                cmd = cmd,
+                cwd = root,
+                group = "Run",
+                matcher = "gcc",
+            })
+        end,
+    })
 end
 
 --- `:LvimLang test [args]` — run the project's tests. CMake → `ctest --output-on-failure` in the

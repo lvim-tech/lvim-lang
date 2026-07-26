@@ -14,6 +14,7 @@
 
 local config = require("lvim-lang.config")
 local buildtool = require("lvim-lang.providers.java.buildtool")
+local dap_core = require("lvim-lang.core.dap")
 
 local TITLE = { title = "lvim-lang" }
 
@@ -113,7 +114,7 @@ function M.spec()
                     request = "launch",
                     name = "Launch (main class)",
                     mainClass = function()
-                        return vim.fn.input("Main class (fully-qualified): ")
+                        return dap_core.prompt({ title = "Main class (fully-qualified)" })
                     end,
                 },
                 {

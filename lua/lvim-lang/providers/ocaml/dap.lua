@@ -8,6 +8,8 @@
 --
 ---@module "lvim-lang.providers.ocaml.dap"
 
+local dap_core = require("lvim-lang.core.dap")
+
 local M = {}
 
 --- The ocaml config block.
@@ -44,7 +46,7 @@ end
 local function pick_program()
     local root = root_of(vim.api.nvim_get_current_buf())
     local base = root .. "/" .. (opts().build_dir or "_build") .. "/default/"
-    return vim.fn.input("Path to bytecode (.bc): ", base, "file")
+    return dap_core.prompt({ title = "Path to bytecode (.bc)", default = base, completion = "file" })
 end
 
 --- The static `dap` field for the ocaml-lsp server config (adapter + base launch configuration).

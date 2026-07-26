@@ -9,6 +9,7 @@
 ---@module "lvim-lang.providers.typescript.dap"
 
 local toolchain = require("lvim-lang.core.toolchain")
+local dap_core = require("lvim-lang.core.dap")
 
 local TITLE = { title = "lvim-lang" }
 
@@ -96,7 +97,7 @@ function M.spec()
                 name = "Launch npm script",
                 runtimeExecutable = require("lvim-lang.providers.typescript.pm").detect(root),
                 runtimeArgs = function()
-                    return { "run", vim.fn.input("Script: ", "dev") }
+                    return { "run", dap_core.prompt({ title = "Script", default = "dev" }) }
                 end,
                 cwd = "${workspaceFolder}",
                 sourceMaps = true,

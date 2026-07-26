@@ -30,24 +30,44 @@ local function bin(provider, tool, root)
     return p ~= "" and p or tool
 end
 
+--- Ask the user for a value through the CANONICAL themed input, from inside a debug run.
+---
+--- A launch config's function values must RETURN what they resolve to, while every themed UI in the
+--- ecosystem is callback-style — which is why these prompts used to fall back to the bare command line.
+--- lvim-dap resolves configs inside its own coroutine (`async.run` → `vars.resolve`), so the value is
+--- simply awaited. Cancelling ABORTS the run (see `lvim-dap.async.ui_input`), so callers never
+--- nil-check: `return dap.prompt({ ... })` is the whole call site.
+---@param opts { title: string, default?: string, completion?: string }
+---@return string
+function M.prompt(opts)
+    return require("lvim-dap.async").ui_input(opts)
+end
+
+--- Ask for a value and return it as a NUMBER (a pid). Cancelling aborts the run.
+---@param opts { title: string, default?: string }
+---@return integer
+function M.prompt_number(opts)
+    return tonumber(M.prompt(opts)) or 0
+end
+
 --- A file/program picker, defaulting under `dir`.
 ---@param dir string|nil
 ---@return fun(): string
 function M.pick_program(dir)
     return function()
-        return vim.fn.input("Path to executable: ", dir and (dir .. "/") or "", "file")
+        return M.prompt({
+            title = "Path to executable",
+            default = dir and (dir .. "/") or "",
+            completion = "file",
+        })
     end
 end
 
---- The pid to attach to: nvim-dap's process picker when available, else a typed pid.
+--- The pid to attach to.
 ---@return fun(): integer
 function M.pick_pid()
     return function()
-        local ok, u = pcall(require, "dap.utils")
-        if ok and type(u.pick_process) == "function" then
-            return u.pick_process()
-        end
-        return tonumber(vim.fn.input("Process id: ")) or 0
+        return M.prompt_number({ title = "Process id" })
     end
 end
 

@@ -9,6 +9,8 @@
 --
 ---@module "lvim-lang.providers.zig.dap"
 
+local dap_core = require("lvim-lang.core.dap")
+
 local M = {}
 
 --- The zig config block.
@@ -68,7 +70,7 @@ end
 local function pick_program()
     local root = root_of(vim.api.nvim_get_current_buf())
     local base = root .. "/" .. (opts().bin_dir or "zig-out/bin") .. "/"
-    return vim.fn.input("Path to executable: ", base, "file")
+    return dap_core.prompt({ title = "Path to executable", default = base, completion = "file" })
 end
 
 --- The pid to attach to: the nvim-dap process picker when available, else a typed pid.
@@ -78,7 +80,7 @@ local function pick_pid()
     if ok and type(dap_utils.pick_process) == "function" then
         return dap_utils.pick_process()
     end
-    return tonumber(vim.fn.input("Process id: ")) or 0
+    return dap_core.prompt_number({ title = "Process id" })
 end
 
 --- The static `dap` field for the zls server config (adapters + base configurations for Zig). The

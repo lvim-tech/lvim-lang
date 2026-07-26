@@ -8,6 +8,7 @@
 ---@module "lvim-lang.providers.rust.dap"
 
 local toolchain = require("lvim-lang.core.toolchain")
+local dap_core = require("lvim-lang.core.dap")
 
 local TITLE = { title = "lvim-lang" }
 
@@ -60,7 +61,11 @@ function M.spec()
                     name = "Debug binary",
                     program = function()
                         local root = require("lvim-lang.providers.rust.tasks").root()
-                        return vim.fn.input("Path to binary: ", root .. "/target/debug/", "file")
+                        return dap_core.prompt({
+                            title = "Path to binary",
+                            default = root .. "/target/debug/",
+                            completion = "file",
+                        })
                     end,
                     cwd = "${workspaceFolder}",
                     stopOnEntry = false,
