@@ -49,17 +49,22 @@ Everything is configurable; the full default configuration:
         enabled = true,
         dev_log = {
             layout = nil,   -- nil = inherit config.layout below
-            height = 15,    -- rows for bottom/top/area
+            height = 15,    -- rows for bottom/top
             width = 60,     -- columns for right/left
             max_lines = 5000,
             focus_on_open = false,
             notify_errors = true,
+            title = "Dev Log",  -- a provider may name its own panel
+            icon = "󰍩",
+            render_debounce = 40,  -- ms; appends coalesce into one repaint
+            float_width = 0.7,     -- width of the "float" placement
+            keys = { clear = "c" },  -- `q` closes (shared frame key)
         },
         decorations = { enabled = true },
         project = { dir = ".lvim", run_file = "lang/run.lua" },
         statusline = true,
         -- GLOBAL panel placement (each panel may override via its own `layout`):
-        layout = "bottom",  -- "bottom"|"top"|"area"|"float"|"right"|"left"
+        layout = "bottom",  -- "bottom"|"top"|"float"|"right"|"left"
         icons = { run_config = "..." },
         providers = {
             dart = {
@@ -103,6 +108,28 @@ All Nerd Font icons above are configurable. Project-local config lives under the
 unified ".lvim/<plugin>/" namespace (run configs at ".lvim/lang/run.lua").
 
 ==============================================================================
+                                                            *lvim-lang-dev-log*
+THE DEV LOG
+
+One shared output panel per project ROOT, for the kind of output a task panel
+cannot hold: a LONG-LIVED session that narrates work across many operations.
+`:LvimLang log` toggles it in any buffer with a recognised provider; `q` closes,
+`c` clears, and the placement token picks bottom / top / left / right / float.
+
+The panel is a sink — it fills only when a provider streams into it, and it
+carries the streaming provider's own name while it does:
+
+    Dart / Flutter   `flutter run --machine` — app.log output (your prints and
+                     the framework's), progress, start/stop, the exit code.
+    Scala / metals   metals' session messages — build import, Bloop, compile and
+                     index status, and the server's own log. See the Scala
+                     provider doc for the message table.
+
+Its ring is kept per root and survives closing, so the whole session can be read
+back afterwards. One-shot builds, runs and tests do NOT go here: they are
+lvim-tasks jobs, which give history, a matcher and quickfix for free.
+
+==============================================================================
 4. COMMANDS                                                  *lvim-lang-commands*
 
                                                                      *:LvimLang*
@@ -110,13 +137,14 @@ Core:
     :LvimLang status        Enabled state and registered providers.
     :LvimLang providers     List registered providers.
     :LvimLang toolchain     Resolve the active provider's toolchain.
+    :LvimLang log [toggle|clear] [bottom|top|float|right|left]
+                            The shared DEV-LOG panel (see |lvim-lang-dev-log|).
 
 Dart / Flutter:
     :LvimLang run [args]         Pick a device, then flutter run --machine (+ run config).
     :LvimLang attach [args]      flutter attach --machine.
     :LvimLang reload | restart   Hot reload / hot restart.
     :LvimLang quit | detach      Stop / detach the running app.
-    :LvimLang log [toggle|clear] [bottom|top|area|float|right|left]  Dev-log panel.
     :LvimLang emulators          List and launch an emulator.
     :LvimLang config             Pick the active run configuration.
     :LvimLang devtools           Start DevTools and open its URL.

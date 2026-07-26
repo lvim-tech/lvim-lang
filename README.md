@@ -170,12 +170,17 @@ require("lvim-lang").setup({
     -- Shared dev-log panel. `layout = nil` inherits the global `layout` below; set it to override
     -- the placement for this panel only. A `:LvimLang log <token>` wins over both.
     dev_log = {
-        layout = nil, -- nil = inherit config.layout; "bottom"|"top"|"area"|"float"|"right"|"left"
-        height = 15, -- rows for a horizontal placement (bottom/top/area)
+        layout = nil, -- nil = inherit config.layout; "bottom"|"top"|"float"|"right"|"left"
+        height = 15, -- rows for a horizontal placement (bottom/top)
         width = 60, -- columns for a vertical placement (right/left)
         max_lines = 5000,
         focus_on_open = false,
         notify_errors = true,
+        title = "Dev Log", -- panel title; a provider streaming into it may pass its own
+        icon = "󰍩", -- Nerd Font glyph shown before the title
+        render_debounce = 40, -- ms a burst of appends is coalesced into one repaint
+        float_width = 0.7, -- width of the "float" placement (fraction, or a column count)
+        keys = { clear = "c" }, -- panel keys (`q` closes, from the shared frame)
         -- filter = function(line) return true end,  -- return false to drop a line
     },
 
@@ -189,8 +194,8 @@ require("lvim-lang").setup({
     statusline = true,
 
     -- GLOBAL default placement for lvim-lang panels (each panel may override with its own `layout`;
-    -- a command token wins over both). "area" docks in the lvim-msgarea zone when available.
-    layout = "bottom", -- "bottom" | "top" | "area" | "float" | "right" | "left"
+    -- a command token wins over both).
+    layout = "bottom", -- "bottom" | "top" | "float" | "right" | "left"
 
     -- Generic core UI icons (Nerd Font). Per-language icons live in the provider block.
     icons = {
@@ -219,6 +224,14 @@ require("lvim-lang").setup({
     },
 })
 ```
+
+> **The dev log is shared, and it is a sink.** `:LvimLang log` opens it in any buffer with a
+> recognised provider, but it fills only when a provider streams into it — today Dart/Flutter
+> (`flutter run --machine`: app output, progress, start/stop, exit code) and Scala/metals (build
+> import, Bloop, compile and index status, the server's log). While one of them is streaming, the
+> panel wears that provider's name. One-shot builds, runs and tests do **not** go here: those are
+> lvim-tasks jobs, which give history, a matcher and quickfix for free.
+
 
 ## Commands
 

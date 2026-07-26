@@ -17,6 +17,31 @@ build server. Debugging goes through metals' own `debug-adapter-start` executeCo
 metals debug seam). The `sbt` / `mill` / `bloop` invocations below are for fire-and-collect build /
 run / test tasks in the lvim-tasks panel — independent of the editor's own compile.
 
+## The dev log
+
+metals imports the build, starts Bloop, compiles and indexes — work that can take minutes and that it
+narrates only through its own LSP notifications. Those go into the **shared dev-log panel**, the same
+one Flutter streams into:
+
+```
+:LvimLang log          " toggle it (also float / right / left / top / bottom)
+:LvimLang log clear    " or `c` inside the panel; `q` closes
+```
+
+Three messages are routed (`providers.scala.dev_log`):
+
+| Message | What it carries | Row kind |
+| --- | --- | --- |
+| `metals/status` | the short status line — "Importing build", "Compiling …", "Indexing". Repeats are dropped, so only transitions appear | info |
+| `window/logMessage` | the server's own log: build import output, Bloop messages, stack traces. Filtered by `min_level` (LSP numbering: 1 error … 4 log) | error / info / normal by level |
+| `metals/slowTask` | a long operation announcing itself. It is a REQUEST, so the handler answers "do not cancel" — leaving it unanswered would stall metals | info |
+
+`$/progress` is deliberately not routed here: Neovim already shows it in the progress UI, and mirroring
+it would put the same thing in two places.
+
+The panel is per project ROOT and its ring survives closing, so the whole import can be read back after
+the fact. While metals is streaming, the panel wears its name (`title` / `icon`).
+
 ## Toolchain
 
 Resolved per project root (nothing is installed here — see the install popup below):
@@ -154,6 +179,17 @@ require("lvim-lang").setup({
 
             -- How long to wait for metals' DAP server before lvim-dap connects.
             debug_attach_delay_ms = 500,
+
+            -- metals' own session messages → the shared dev-log panel (`:LvimLang log`).
+            dev_log = {
+                enabled = true, -- master switch for the routing
+                status = true, -- metals/status ("Importing build", "Compiling …"), deduplicated
+                messages = true, -- window/logMessage (the server's own log)
+                slow_task = true, -- metals/slowTask (long operations)
+                min_level = 3, -- window/logMessage verbosity: 1 error … 4 log (higher = chattier)
+                title = "Metals Dev Log",
+                icon = "󰘧",
+            },
 
             -- LSP server catalog + selection.
             lsp = {
