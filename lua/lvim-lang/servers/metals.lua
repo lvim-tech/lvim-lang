@@ -12,7 +12,9 @@
 -- there is no BSP client to configure. The `efm` field is PER-FILETYPE (core.catalog.efm_groups):
 -- scalafmt (opt-in) lands on `scala`; when active, metals' own formatting is handed to efm on attach
 -- so the two never both format. Debugging rides on the `dap` field (providers.scala.dap), a metals
--- `debug-adapter-start` server adapter auto-registered with lvim-dap on attach.
+-- `debug-adapter-start` server adapter auto-registered with lvim-dap on attach. metals' own session
+-- messages (status / log / slow tasks) are routed into the SHARED dev-log panel by
+-- providers.scala.devlog — the same panel Flutter streams into.
 --
 ---@module "lvim-lang.servers.metals"
 
@@ -20,6 +22,7 @@ local config = require("lvim-lang.config")
 local toolchain = require("lvim-lang.core.toolchain")
 local catalog = require("lvim-lang.core.catalog")
 local scala_dap = require("lvim-lang.providers.scala.dap")
+local devlog = require("lvim-lang.providers.scala.devlog")
 
 --- Scala's root markers (build scripts, then `.git`).
 ---@type string[]
@@ -71,7 +74,8 @@ return {
         ---@return table
         config = function()
             local so = server_opts()
-            local metals = toolchain.resolve("scala", "metals", current_root()) or "metals"
+            local root = current_root()
+            local metals = toolchain.resolve("scala", "metals", root) or "metals"
             local cfg = {
                 cmd = { metals },
                 filetypes = { "scala", "sbt" },
@@ -79,6 +83,14 @@ return {
                 -- Hand formatting to efm when a formatter is active for the buffer (scalafmt, opt-in),
                 -- else metals formats. Composes any user server on_attach.
                 on_attach = catalog.lsp_on_attach("scala", "metals"),
+                -- metals narrates its build import / compile / index work through its own
+                -- notifications; route them into the shared dev-log panel (providers.scala.dev_log).
+                handlers = devlog.handlers(),
+                -- A restarted session must log its first status again, so the dedup memory for this
+                -- root dies with the client.
+                on_exit = function()
+                    devlog.forget(root)
+                end,
             }
             -- metals reads its user settings from the `metals` key of the didChangeConfiguration
             -- payload — which lvim-ls sends from `settings`. Only send when non-empty (an empty Lua

@@ -132,6 +132,19 @@ defaults.mill_module = nil -- mill needs a MODULE to run/test a single class (`m
 defaults.bloop_project = nil -- bloop addresses a PROJECT (nil = the sanitized root basename)
 defaults.debug_attach_delay_ms = 500 -- wait for metals' DAP server (started via debug-adapter-start)
 
+-- metals narrates its build import / compile / index work only through its own LSP notifications;
+-- route them into the SHARED dev-log panel (`:LvimLang log`), the same one Flutter streams into.
+-- See providers.scala.devlog for what each message carries.
+defaults.dev_log = {
+    enabled = true, -- master switch for the routing
+    status = true, -- metals/status ("Importing build", "Compiling …") — deduplicated
+    messages = true, -- window/logMessage (the server's own log)
+    slow_task = true, -- metals/slowTask (long operations; the handler answers "do not cancel")
+    min_level = 3, -- window/logMessage verbosity, LSP numbering: 1 error … 4 log (higher = chattier)
+    title = "Metals Dev Log", -- the panel's name while metals is streaming into it
+    icon = "󰘧", -- Nerd Font glyph shown before the title
+}
+
 -- Requirements: the factory surfaces java presence; add the JVM-VERSION check (Java 11+).
 local base_reqs = spec.requirements
 spec.requirements = function(root)
