@@ -9,16 +9,21 @@
 --
 ---@module "lvim-lang.config"
 
----@alias LvimLangLayout "bottom"|"top"|"area"|"float"|"right"|"left"
+---@alias LvimLangLayout "bottom"|"top"|"float"|"right"|"left"
 
 ---@class LvimLangDevLogConfig
 ---@field layout?      LvimLangLayout             Placement override for THIS panel (nil = inherit config.layout)
----@field height       integer                    Rows for a horizontal placement (bottom/top/area)
+---@field height       integer                    Rows for a horizontal placement (bottom/top)
 ---@field width        integer                    Columns for a vertical placement (right/left)
 ---@field max_lines    integer                    Ring-buffer cap per project root
 ---@field focus_on_open boolean                   Whether opening the panel focuses it
 ---@field notify_errors boolean                   Surface error lines through the canonical notifier
 ---@field filter?      fun(line: string): boolean Return false to drop a line from the panel
+---@field title        string                     Panel title (a provider streaming into it may pass its own)
+---@field icon         string                     Nerd Font glyph shown before the title
+---@field render_debounce integer                 Milliseconds a burst of appends is coalesced into one repaint
+---@field float_width  number                     Width of the "float" placement (fraction ≤ 1, or a column count)
+---@field keys         table                      Panel keys (`clear`; `q` closes, from the shared frame)
 
 ---@class LvimLangDecorationsConfig
 ---@field enabled      boolean                    Master switch for notification-driven decorations
@@ -70,12 +75,22 @@ return {
     -- every language. `layout = nil` inherits the global `config.layout`; set it to override the
     -- placement for THIS panel only.
     dev_log = {
-        layout = nil, -- nil = inherit config.layout; "bottom"|"top"|"area"|"float"|"right"|"left"
-        height = 15, -- rows for a horizontal placement (bottom/top/area)
+        layout = nil, -- nil = inherit config.layout; "bottom"|"top"|"float"|"right"|"left"
+        height = 15, -- rows for a horizontal placement (bottom/top)
         width = 60, -- columns for a vertical placement (right/left)
         max_lines = 5000,
         focus_on_open = false,
         notify_errors = true,
+        -- The panel is SHARED across languages, so its title is an option rather than a literal: a
+        -- provider that streams into it passes its own (the Dart daemon passes "Flutter Dev Log"),
+        -- and anything else gets this neutral default instead of another language's name.
+        title = "Dev Log",
+        icon = "󰍩",
+        -- The panel renders FROM the ring, so a chatty stream would otherwise repaint it per line.
+        render_debounce = 40,
+        float_width = 0.7, -- the "float" placement's width (a fraction of the screen, or a column count)
+        -- Panel keys. `q` closes (the shared frame's close key); set `clear = false` to not bind it.
+        keys = { clear = "c" },
         -- filter = function(line) return true end,  -- default: keep every line
     },
 
@@ -99,7 +114,7 @@ return {
 
     -- GLOBAL default placement for lvim-lang panels (the dev log today). Each panel may override
     -- it with its own `layout` (e.g. dev_log.layout), and a command token wins over both
-    -- (`:LvimLang log right`). "area" docks in the lvim-msgarea zone when available, else bottom.
+    -- (`:LvimLang log right`).
     ---@type LvimLangLayout
     layout = "bottom",
 

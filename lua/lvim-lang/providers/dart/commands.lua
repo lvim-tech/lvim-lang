@@ -144,15 +144,6 @@ local M = {
     restart = { impl = run.restart, desc = "hot restart the running app" },
     quit = { impl = run.quit, desc = "stop the running app" },
     detach = { impl = run.detach, desc = "detach from the app (leave it running)" },
-    log = {
-        impl = run.log,
-        desc = "log [toggle|clear] [bottom|top|area|float|right|left] — the dev-log panel",
-        complete = function(arg)
-            return vim.tbl_filter(function(c)
-                return arg == "" or c:find(arg, 1, true) == 1
-            end, { "toggle", "clear", "bottom", "top", "area", "float", "right", "left" })
-        end,
-    },
     super = { impl = super, desc = "jump to the super definition (dart/textDocument/super)" },
     reanalyze = { impl = reanalyze, desc = "re-run dartls analysis (dart/reanalyze)" },
     lsp = { impl = lsp, desc = "lsp restart — restart dartls" },

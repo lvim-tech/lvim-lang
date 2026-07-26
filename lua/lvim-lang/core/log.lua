@@ -1,29 +1,58 @@
--- lvim-lang.core.log: the shared dev-log panel (a persistent output split per project root).
--- A provider's structured runner/daemon streams non-protocol output here; the ring buffer,
--- filtering, error-notify seam and rendering are identical across languages, so a Flutter app
--- log and (later) a cargo run log look and behave the same. This is a scrolling OUTPUT pane
--- (like a quickfix / task terminal), opened with config.dev_log.open_cmd — not a chooser, so it
--- is a real split rather than an lvim-ui modal. Rows are tinted from lvim-lang.highlights.
+-- lvim-lang.core.log: the shared dev-log panel (one persistent output pane per project root).
+-- A provider's structured runner/daemon streams non-protocol output here; the ring buffer, the
+-- filtering, the error-notify seam and the rendering are identical across languages, so a Flutter
+-- app log and (later) a cargo run log look and behave the same.
+--
+-- The RING is the source of truth, not a buffer: the panel is a canonical `lvim-ui.surface` whose
+-- provider renders the ring on demand, so the same content can be shown as a native split (bottom /
+-- top / left / right) or a centered float without any of them owning the data. That is also why the
+-- window layer here is tiny — the surface owns the frame, the title band, the theming, the cursor
+-- registration and the close keys.
+--
+-- Appends are DEBOUNCED into one re-render: a chatty stream (flutter run) would otherwise repaint the
+-- panel per line. The debounce timer is per root and is closed with the panel, never merely stopped.
 --
 ---@module "lvim-lang.core.log"
 
 local config = require("lvim-lang.config")
+local surface = require("lvim-ui.surface")
 
 local M = {}
 
 local FT = "lvimlangdevlog"
-local NS = vim.api.nvim_create_namespace("lvim_lang_devlog")
 
--- Per root: the ring buffer of { text, kind } plus the (reused) scratch buffer handle.
----@type table<string, { lines: { text: string, kind: string }[], bufnr: integer|nil }>
+--- Per root: the ring buffer of lines, the live panel handles, and the panel name the streaming
+--- provider chose for this root.
+---@class LvimLangDevLogStore
+---@field lines { text: string, kind: string }[]
+---@field title string|nil    panel title for THIS root (nil = the configured default)
+---@field icon  string|nil    panel glyph for THIS root (nil = the configured default)
+---@field surface table|nil   the open `lvim-ui.surface` handle
+---@field pan table|nil       its single panel (carries `buf` / `win` / `refresh`)
+---@field timer uv.uv_timer_t|nil  the append debounce
+
+---@type table<string, LvimLangDevLogStore>
 local logs = {}
 
 --- The dev-log store for a root (created on demand).
 ---@param root string
----@return { lines: { text: string, kind: string }[], bufnr: integer|nil }
+---@return LvimLangDevLogStore
 local function store(root)
-    logs[root] = logs[root] or { lines = {}, bufnr = nil }
+    logs[root] = logs[root] or { lines = {} }
     return logs[root]
+end
+
+--- Name the panel for `root`. The dev log is SHARED across languages, so the provider that streams
+--- into a root's panel says what it is called ("Flutter Dev Log"); anything that never sets one falls
+--- back to the neutral `dev_log.title` / `dev_log.icon` from config.
+---@param root string
+---@param title string?
+---@param icon string?
+---@return nil
+function M.set_title(root, title, icon)
+    local s = store(root)
+    s.title = title
+    s.icon = icon
 end
 
 --- The highlight group for a line kind.
@@ -38,65 +67,67 @@ local function hl_for(kind)
     return "LvimLangLogNormal"
 end
 
---- The window currently displaying `bufnr`, or nil.
----@param bufnr integer|nil
----@return integer|nil
-local function win_for(bufnr)
-    if not bufnr then
-        return nil
-    end
-    for _, win in ipairs(vim.api.nvim_list_wins()) do
-        if vim.api.nvim_win_get_buf(win) == bufnr then
-            return win
-        end
-    end
-    return nil
-end
-
---- Scroll a buffer's window (if visible) to the last line.
----@param bufnr integer
-local function autoscroll(bufnr)
-    local win = win_for(bufnr)
-    if win then
-        local n = vim.api.nvim_buf_line_count(bufnr)
-        pcall(vim.api.nvim_win_set_cursor, win, { n, 0 })
-    end
-end
-
---- Paint one line (index `idx`, 0-based) with its kind's highlight.
----@param bufnr integer
----@param idx integer
----@param kind string
-local function paint(bufnr, idx, kind)
-    pcall(vim.api.nvim_buf_set_extmark, bufnr, NS, idx, 0, { line_hl_group = hl_for(kind), end_row = idx })
-end
-
---- Ensure the scratch buffer for a root exists and is filled from the ring.
+--- Is the panel for `root` on screen?
 ---@param root string
----@return integer bufnr
-local function ensure_buf(root)
+---@return boolean
+local function visible(root)
     local s = store(root)
-    if s.bufnr and vim.api.nvim_buf_is_valid(s.bufnr) then
-        return s.bufnr
+    return s.pan ~= nil and s.pan.win ~= nil and vim.api.nvim_win_is_valid(s.pan.win)
+end
+
+--- Scroll the panel to its last line — a log follows its tail.
+---@param root string
+---@return nil
+local function autoscroll(root)
+    local s = store(root)
+    if not visible(root) then
+        return
     end
-    local buf = vim.api.nvim_create_buf(false, true)
-    vim.bo[buf].filetype = FT
-    vim.bo[buf].bufhidden = "hide"
-    vim.bo[buf].modifiable = false
-    pcall(vim.api.nvim_buf_set_name, buf, "lvim-lang://dev-log/" .. vim.fs.basename(root))
-    s.bufnr = buf
-    -- Fill from the ring.
-    local texts = {}
-    for i, entry in ipairs(s.lines) do
-        texts[i] = entry.text
+    local count = vim.api.nvim_buf_line_count(s.pan.buf)
+    pcall(vim.api.nvim_win_set_cursor, s.pan.win, { count, 0 })
+end
+
+--- Close and forget a root's debounce timer. Stopping alone would leak the handle across roots.
+---@param root string
+---@return nil
+local function release_timer(root)
+    local s = store(root)
+    if not s.timer then
+        return
     end
-    vim.bo[buf].modifiable = true
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, texts)
-    vim.bo[buf].modifiable = false
-    for i, entry in ipairs(s.lines) do
-        paint(buf, i - 1, entry.kind)
+    s.timer:stop()
+    if not s.timer:is_closing() then
+        s.timer:close()
     end
-    return buf
+    s.timer = nil
+end
+
+--- Re-render the panel from the ring, coalescing a burst of appends into ONE repaint.
+---@param root string
+---@return nil
+local function schedule_render(root)
+    local s = store(root)
+    if not s.pan then
+        return
+    end
+    if not s.timer then
+        s.timer = vim.uv.new_timer()
+    end
+    if not s.timer then
+        return
+    end
+    s.timer:stop()
+    s.timer:start(
+        (config.dev_log or {}).render_debounce or 40,
+        0,
+        vim.schedule_wrap(function()
+            local cur = store(root)
+            if cur.pan and cur.pan.refresh then
+                cur.pan.refresh()
+                autoscroll(root)
+            end
+        end)
+    )
 end
 
 --- Append a line to a root's dev log (and, if its panel is open, the buffer + autoscroll).
@@ -113,67 +144,24 @@ function M.append(root, line, kind)
     local s = store(root)
     s.lines[#s.lines + 1] = { text = line, kind = kind }
     local max = cfg.max_lines or 5000
-    local trimmed = false
     while #s.lines > max do
         table.remove(s.lines, 1)
-        trimmed = true
     end
     if kind == "error" and cfg.notify_errors then
         vim.notify(line, vim.log.levels.ERROR, { title = "lvim-lang" })
     end
-    local buf = s.bufnr
-    if buf and vim.api.nvim_buf_is_valid(buf) then
-        vim.bo[buf].modifiable = true
-        if trimmed then
-            -- Ring rotated: repaint the whole (bounded) buffer to keep line ↔ kind aligned.
-            vim.api.nvim_buf_clear_namespace(buf, NS, 0, -1)
-            local texts = {}
-            for i, e in ipairs(s.lines) do
-                texts[i] = e.text
-            end
-            vim.api.nvim_buf_set_lines(buf, 0, -1, false, texts)
-            for i, e in ipairs(s.lines) do
-                paint(buf, i - 1, e.kind)
-            end
-        else
-            local idx = vim.api.nvim_buf_line_count(buf)
-            -- A fresh empty buffer reports 1 line; replace that blank first line.
-            if idx == 1 and vim.api.nvim_buf_get_lines(buf, 0, 1, false)[1] == "" and #s.lines == 1 then
-                idx = 0
-                vim.api.nvim_buf_set_lines(buf, 0, 1, false, { line })
-            else
-                vim.api.nvim_buf_set_lines(buf, idx, idx, false, { line })
-            end
-            paint(buf, idx, kind)
-        end
-        vim.bo[buf].modifiable = false
-        autoscroll(buf)
-    end
+    -- The panel renders FROM the ring, so an append is complete once the ring holds it; the repaint is
+    -- just a view update and can be coalesced.
+    schedule_render(root)
 end
 
 --- Clear a root's dev-log buffer and ring.
 ---@param root string
 ---@return nil
 function M.clear(root)
-    local s = store(root)
-    s.lines = {}
-    if s.bufnr and vim.api.nvim_buf_is_valid(s.bufnr) then
-        vim.bo[s.bufnr].modifiable = true
-        vim.api.nvim_buf_clear_namespace(s.bufnr, NS, 0, -1)
-        vim.api.nvim_buf_set_lines(s.bufnr, 0, -1, false, {})
-        vim.bo[s.bufnr].modifiable = false
-    end
+    store(root).lines = {}
+    schedule_render(root)
 end
-
--- The split command per horizontal/vertical placement (a %d for the fixed size). "area" docks in
--- the lvim-msgarea zone when available, else falls back to a bottom split.
-local SPLIT = {
-    bottom = "botright %dsplit",
-    top = "topleft %dsplit",
-    area = "botright %dsplit",
-    right = "botright %dvsplit",
-    left = "topleft %dvsplit",
-}
 
 --- Resolve the effective placement: a command-token override → the panel's own layout →
 --- the global config.layout → "bottom".
@@ -184,73 +172,103 @@ local function resolve_layout(override)
     return override or dl.layout or config.layout or "bottom"
 end
 
---- Apply the canonical panel window options (title winbar, fixed size, no gutters, q to close).
----@param win integer
----@param buf integer
----@param horiz boolean
----@return nil
-local function dress(win, buf, horiz)
-    if horiz then
-        vim.wo[win].winfixheight = true
-    else
-        vim.wo[win].winfixwidth = true
-    end
-    vim.wo[win].number = false
-    vim.wo[win].relativenumber = false
-    vim.wo[win].signcolumn = "no"
-    vim.wo[win].winbar = "%#LvimLangLogTitle# 󰔶 Flutter Dev Log %*"
-    pcall(function()
-        vim.wo[win].winfixbuf = true
-    end)
-    vim.keymap.set("n", "q", function()
-        if vim.api.nvim_win_is_valid(win) then
-            vim.api.nvim_win_close(win, true)
-        end
-    end, { buffer = buf, nowait = true, silent = true, desc = "close the dev log" })
+--- The panel's title text: the per-root name a provider set (see `M.set_title`), else the configured
+--- `dev_log.icon` + `dev_log.title`. The panel is shared by every language, so neither part is a literal.
+---@param root string
+---@return string
+local function title_text(root)
+    local dl = config.dev_log or {}
+    local s = store(root)
+    local icon = s.icon or dl.icon or ""
+    local title = s.title or dl.title or "Dev Log"
+    return icon ~= "" and (icon .. " " .. title) or title
 end
 
---- Open the dev-log window for a root in `layout` (native split, or a centered float).
+--- The surface content provider: it renders the ring, so the panel never owns the data and any layout
+--- shows the same log. Each row is highlighted by its KIND (normal / info / error).
+---@param root string
+---@return table  an lvim-ui.surface content provider
+local function provider_for(root)
+    return {
+        filetype = FT,
+        render = function()
+            local s = store(root)
+            if #s.lines == 0 then
+                return { "  no output yet" }, { { 0, 0, 15, "LvimLangLogInfo" } }
+            end
+            local lines, hls = {}, {}
+            for i, entry in ipairs(s.lines) do
+                lines[i] = entry.text
+                if #entry.text > 0 then
+                    hls[#hls + 1] = { i - 1, 0, #entry.text, hl_for(entry.kind) }
+                end
+            end
+            return lines, hls
+        end,
+        keys = function(map, pan)
+            -- The panel hands back its own handles here: `pan.refresh` is what the debounced append calls,
+            -- and `pan.win` is what the autoscroll follows.
+            local s = store(root)
+            s.pan = pan
+            -- `map` is the surface's panel binder: (lhs, fn) on the panel buffer.
+            local clear_key = ((config.dev_log or {}).keys or {}).clear
+            if clear_key and clear_key ~= "" then
+                map(clear_key, function()
+                    M.clear(root)
+                end)
+            end
+            -- Render whatever arrived while the panel was closed, and start at the tail.
+            vim.schedule(function()
+                if pan.refresh then
+                    pan.refresh()
+                end
+                autoscroll(root)
+            end)
+        end,
+        on_close = function()
+            local s = store(root)
+            release_timer(root)
+            s.pan = nil
+            s.surface = nil
+        end,
+    }
+end
+
+--- Open the dev-log panel for `root` in `layout`. Every placement is the SAME surface with a different
+--- frame: a native split keeps the panel in the real window layout (so `<C-w>` navigation and redraw
+--- behave), while "float" is the canonical centered frame.
 ---@param root string
 ---@param layout string
 ---@return nil
 local function open_window(root, layout)
-    local buf = ensure_buf(root)
     local dl = config.dev_log or {}
-    local prev = vim.api.nvim_get_current_win()
-    if layout == "float" then
-        local cols, rows = vim.o.columns, vim.o.lines
-        local width = math.floor(cols * 0.7)
-        local height = math.floor(rows * 0.5)
-        local win = vim.api.nvim_open_win(buf, dl.focus_on_open == true, {
-            relative = "editor",
-            width = width,
-            height = height,
-            row = math.floor((rows - height) / 2 - 1),
-            col = math.floor((cols - width) / 2),
-            style = "minimal",
-            border = "rounded",
-            title = " 󰔶 Flutter Dev Log ",
-            title_pos = "center",
-        })
-        -- Border title only — no winbar (splits inherit winbar; a float must not carry it).
-        vim.wo[win].winbar = ""
-        vim.keymap.set("n", "q", function()
-            if vim.api.nvim_win_is_valid(win) then
-                vim.api.nvim_win_close(win, true)
-            end
-        end, { buffer = buf, nowait = true, silent = true, desc = "close the dev log" })
+    local s = store(root)
+    local DOCK = { bottom = "below", top = "above", right = "right", left = "left" }
+    local dock = DOCK[layout]
+    local horiz = layout == "bottom" or layout == "top"
+
+    ---@type table
+    local cfg = {
+        title = title_text(root),
+        enter = dl.focus_on_open == true,
+        persistent = true,
+        content = { blocks = { { id = "devlog", provider = provider_for(root) } } },
+        close_keys = { "q" },
+    }
+    if dock then
+        cfg.mode = "split"
+        cfg.native = true -- a REAL split: native <C-w> navigation and redraw, like any output pane
+        cfg.dock = dock
+        cfg.normal_hl = "NormalSB" -- a persistent pane wears the opaque sidebar background
+        cfg.size = horiz and { height = { fixed = dl.height or 15 } } or { width = { fixed = dl.width or 60 } }
     else
-        local horiz = layout == "bottom" or layout == "top" or layout == "area"
-        local size = horiz and (dl.height or 15) or (dl.width or 60)
-        vim.cmd((SPLIT[layout] or SPLIT.bottom):format(size))
-        local win = vim.api.nvim_get_current_win()
-        vim.api.nvim_win_set_buf(win, buf)
-        dress(win, buf, horiz)
+        cfg.mode = "float"
+        -- A log is a FIXED-SIZE scrollable pane, never content-fit: the ring holds up to `max_lines`, so
+        -- letting the frame grow with the content would size it to thousands of rows (and letting it
+        -- auto-fit a short log would open a one-row window).
+        cfg.size = { height = { fixed = dl.height or 15 }, width = { fixed = dl.float_width or 0.7 } }
     end
-    autoscroll(buf)
-    if dl.focus_on_open ~= true and vim.api.nvim_win_is_valid(prev) then
-        vim.api.nvim_set_current_win(prev)
-    end
+    s.surface = surface.open(cfg)
 end
 
 --- Ensure the dev-log panel for a root is visible (idempotent). `layout` overrides the placement.
@@ -258,9 +276,21 @@ end
 ---@param layout? string
 ---@return nil
 function M.open(root, layout)
-    if not win_for(store(root).bufnr) then
+    if not visible(root) then
         open_window(root, resolve_layout(layout))
     end
+end
+
+--- Close a root's dev-log panel (the ring survives — reopening shows the same output).
+---@param root string
+---@return nil
+function M.close(root)
+    local s = store(root)
+    if s.surface and s.surface.close then
+        s.surface.close()
+    end
+    release_timer(root)
+    s.pan, s.surface = nil, nil
 end
 
 --- Toggle the dev-log panel for a root (placement: `layout` token → config).
@@ -268,9 +298,8 @@ end
 ---@param layout? string
 ---@return nil
 function M.toggle(root, layout)
-    local win = win_for(store(root).bufnr)
-    if win then
-        vim.api.nvim_win_close(win, true)
+    if visible(root) then
+        M.close(root)
         return
     end
     open_window(root, resolve_layout(layout))

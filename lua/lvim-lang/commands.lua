@@ -73,6 +73,38 @@ function core_subs.providers()
     )
 end
 
+-- Placements the dev-log panel accepts (`lvim-lang.core.log` resolves the rest from config).
+---@type table<string, boolean>
+local LOG_LAYOUTS = { bottom = true, top = true, float = true, right = true, left = true }
+
+--- `:LvimLang log [toggle|clear] [bottom|top|float|right|left]` — the shared dev-log panel.
+--- It is a CORE subcommand, not a per-provider one: the panel itself is shared by every language
+--- (`lvim-lang.core.log`), so any provider's output is reachable the same way. The root comes from the
+--- active buffer's provider, which is the key the ring is stored under.
+---@param args string[]?
+---@return nil
+function core_subs.log(args)
+    local log = require("lvim-lang.core.log")
+    local _, root = registry.for_buffer()
+    if not root then
+        vim.notify("lvim-lang: no language provider for this buffer", vim.log.levels.WARN, { title = "lvim-lang" })
+        return
+    end
+    local action, layout
+    for _, a in ipairs(args or {}) do
+        if LOG_LAYOUTS[a] then
+            layout = a
+        elseif a == "clear" or a == "toggle" then
+            action = a
+        end
+    end
+    if action == "clear" then
+        log.clear(root)
+        return
+    end
+    log.toggle(root, layout)
+end
+
 --- Dispatch a :LvimLang invocation. Core subs win; otherwise the active provider's command
 --- of that name runs, with the remaining args and a context table.
 ---@param fargs string[]
@@ -112,6 +144,17 @@ local function complete(arg, line)
     local words = vim.split(vim.trim(line), "%s+")
     -- Completing an ARGUMENT to a subcommand (a 3rd+ token, or a trailing space after the sub).
     if #words > 2 or (#words == 2 and arg == "") then
+        -- Core subs that take arguments complete their own (the provider table has no entry for them).
+        if words[2] == "log" then
+            local items = { "toggle", "clear" }
+            for name in pairs(LOG_LAYOUTS) do
+                items[#items + 1] = name
+            end
+            table.sort(items)
+            return vim.tbl_filter(function(c)
+                return arg == "" or c:find(arg, 1, true) == 1
+            end, items)
+        end
         local provider = registry.for_buffer()
         local cmd = provider and provider.commands and provider.commands[words[2]]
         if cmd and cmd.complete then

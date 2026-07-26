@@ -77,6 +77,7 @@ local function launch(ctx, mode, args)
     local root = ctx.root
     if live(root) then
         -- Already running — reveal the dev log rather than silently no-op'ing.
+        log.set_title(root, "Flutter Dev Log", "󰔶")
         log.open(root)
         vim.notify("lvim-lang: already running here — use reload/restart/quit", vim.log.levels.WARN, TITLE)
         return
@@ -115,6 +116,7 @@ local function launch(ctx, mode, args)
     end
     rec.session = session
     state.sessions[root] = rec
+    log.set_title(root, "Flutter Dev Log", "󰔶")
     log.open(root)
     vim.notify(
         "lvim-lang: flutter " .. mode .. (device and (" on " .. (device.name or device.id)) or ""),
@@ -219,27 +221,5 @@ function M.detach(_args, ctx)
 end
 
 -- Placement tokens accepted by `:LvimLang log` (a layout override for this open).
-local LOG_LAYOUTS = { bottom = true, top = true, area = true, float = true, right = true, left = true }
-
---- `:LvimLang log [toggle|clear] [bottom|top|area|float|right|left]` — toggle (default) or clear
---- the dev-log panel; a placement token overrides the configured layout for this open.
----@param args string[]
----@param ctx table
----@return nil
-function M.log(args, ctx)
-    local sub, layout
-    for _, a in ipairs(args) do
-        if LOG_LAYOUTS[a] then
-            layout = a
-        elseif a == "clear" or a == "toggle" then
-            sub = a
-        end
-    end
-    if sub == "clear" then
-        log.clear(ctx.root)
-        return
-    end
-    log.toggle(ctx.root, layout)
-end
 
 return M
