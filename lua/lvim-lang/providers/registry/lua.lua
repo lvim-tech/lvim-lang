@@ -142,7 +142,9 @@ return {
         test = {
             cmd = { "busted" },
             tool = "busted",
-            ensure = { mason = "busted" },
+            -- busted is a LuaRocks rock and is NOT in the mason registry, so asking the registry
+            -- for it installed nothing and reported only that no binary appeared.
+            ensure = { luarocks = "busted" },
             group = "Test",
             desc = "busted — run the Lua test suite",
         },

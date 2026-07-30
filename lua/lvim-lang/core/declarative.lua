@@ -43,7 +43,9 @@ local runcfg = require("lvim-lang.core.runcfg")
 ---@class LvimLangCommandData       -- one straight-line :LvimLang subcommand
 ---@field cmd       string[]         -- argv template; cmd[1] is resolved through the toolchain when possible
 ---@field tool?     string           -- toolchain key for cmd[1] (defaults to cmd[1])
----@field ensure?   { mason: string, bin?: string }  -- install this mason tool on first run (on-demand)
+---@field ensure?   { mason?: string, luarocks?: string, bin?: string }  -- install this tool on first
+---                 run (on-demand): from the mason registry, or from LuaRocks for a rock the
+---                 registry does not carry
 ---@field group?    string           -- lvim-tasks display group (Build/Run/Test/…), default "Run"
 ---@field matcher?  string           -- lvim-tasks problem matcher name
 ---@field desc?     string
@@ -200,8 +202,17 @@ function M.build_commands(name, data)
                         matcher = c.matcher,
                     })
                 end
-                if c.ensure and c.ensure.mason then
-                    require("lvim-lang.core.ensure").tool(c.ensure.mason, c.ensure.bin, function(binpath)
+                -- The tool this command needs, installed on first run. Two sources, because the
+                -- mason registry does not carry every tool a language uses: `luarocks` for a rock
+                -- that is missing from it (the Lua provider's `busted`), `mason` for everything
+                -- else. Neither blocks a command that needs no tool at all.
+                local ens = c.ensure or {}
+                if ens.luarocks then
+                    require("lvim-lang.core.ensure").rock(ens.luarocks, ens.bin, function(binpath)
+                        go(binpath)
+                    end)
+                elseif ens.mason then
+                    require("lvim-lang.core.ensure").tool(ens.mason, ens.bin, function(binpath)
                         go(binpath)
                     end)
                 else
