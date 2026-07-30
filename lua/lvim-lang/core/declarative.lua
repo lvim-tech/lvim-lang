@@ -40,9 +40,23 @@ local runcfg = require("lvim-lang.core.runcfg")
 ---@field hint?     string          -- how to install it when missing
 ---@field severity? "error"|"warn"|"info"  -- requirement level (default "warn")
 
+---@class LvimLangCommandCtx        -- what a dynamic `cmd` builder is handed
+---@field provider string           -- the provider name
+---@field root     string           -- the resolved project root (the task's cwd)
+---@field bufnr    integer          -- the buffer the command was run from
+---@field file     string           -- that buffer's file path ("" for an unnamed buffer)
+---@field args     string[]         -- the extra args typed after the subcommand
+
 ---@class LvimLangCommandData       -- one straight-line :LvimLang subcommand
----@field cmd       string[]         -- argv template; cmd[1] is resolved through the toolchain when possible
----@field tool?     string           -- toolchain key for cmd[1] (defaults to cmd[1])
+---@field cmd       string[]|fun(ctx: LvimLangCommandCtx): string[]?
+---                 An argv TEMPLATE (cmd[1] resolved through the toolchain, `${file}` / `${dir}`
+---                 substituted), or a BUILDER that returns the final argv. A builder owns the whole
+---                 decision — which binary, which flags — so neither the toolchain resolve nor the
+---                 token substitution is applied to what it returns; it is for a command whose
+---                 interpreter depends on the file (Lua picking `nvim -l` over the standalone
+---                 interpreter for a Neovim Lua file). Returning nil cancels the run (the builder
+---                 reports why).
+---@field tool?     string           -- toolchain key for cmd[1] (defaults to cmd[1]); ignored for a builder
 ---@field ensure?   { mason?: string, luarocks?: string, bin?: string }  -- install this tool on first
 ---                 run (on-demand): from the mason registry, or from LuaRocks for a rock the
 ---                 registry does not carry
@@ -163,9 +177,28 @@ local function build_toolchain(name, data)
     return { tools = tools, version = data.version or detect.version }
 end
 
+--- The task ROW label for an argv, as it actually runs: the binary by its basename (its full mason /
+--- PATH location is noise in a task row) and any path inside the root relative to it. The raw argv
+--- would read as an unreadable wall of absolute paths, and the argv TEMPLATE — the previous label —
+--- read as the literal `lua ${file}` in the panel, naming no file at all.
+---@param argv string[]
+---@param root string
+---@return string
+local function display_label(argv, root)
+    local prefix = root:sub(-1) == "/" and root or (root .. "/")
+    local parts = { vim.fs.basename(argv[1] or "?") }
+    for i = 2, #argv do
+        local a = argv[i]
+        parts[i] = (a:sub(1, #prefix) == prefix) and a:sub(#prefix + 1) or a
+    end
+    return table.concat(parts, " ")
+end
+
 --- Turn the command data into :LvimLang subcommand impls. Each resolves cmd[1] through the toolchain
 --- (mason bin dir → PATH) per root, appends the user's extra args, and runs through core.runner →
---- lvim-tasks. A command with `ensure` installs its mason tool on first run (on-demand) before running.
+--- lvim-tasks. A command whose `cmd` is a BUILDER (see LvimLangCommandData) instead returns its own
+--- final argv, unresolved and unsubstituted. A command with `ensure` installs its mason tool on first
+--- run (on-demand) before running.
 --- A bespoke provider may OVERRIDE any of these on the returned spec (base+extend).
 ---@param name string
 ---@param data LvimLangSpecData
@@ -174,28 +207,60 @@ function M.build_commands(name, data)
     ---@type table<string, LvimLangCommand>
     local cmds = {}
     for sub, c in pairs(data.commands or {}) do
-        local label = table.concat(c.cmd, " ")
+        -- `cmd` is one of two shapes — split them into two plainly typed locals here, so each path
+        -- below reads (and type-checks) as a single kind of thing.
+        local spec_cmd = c.cmd
+        ---@type string[]?
+        local template
+        ---@type (fun(ctx: LvimLangCommandCtx): string[]?)?
+        local build
+        if type(spec_cmd) == "function" then
+            build = spec_cmd
+        else
+            template = spec_cmd
+        end
+        -- A builder's argv is only known at run time, so its DESCRIPTION (completion / help) can only
+        -- come from `desc`; a template's reads as the template itself.
+        local label = template and table.concat(template, " ") or (c.desc or sub)
         cmds[sub] = {
             desc = c.desc or label,
             impl = function(args, ctx)
                 local root = ctx.root or (vim.uv.cwd() or ".")
-                local tool = c.tool or c.cmd[1]
+                local bufnr = ctx.bufnr or vim.api.nvim_get_current_buf()
+                local file = vim.api.nvim_buf_get_name(bufnr)
                 local function go(bin)
-                    local argv = vim.deepcopy(c.cmd)
-                    argv[1] = bin or toolchain.resolve(name, tool, root) or argv[1]
-                    -- Token substitution: `${file}` → the current buffer's path, `${dir}` → the root, so a
-                    -- data command can target the file it was run from (run/check/test-file on ${file}).
-                    local file = vim.api.nvim_buf_get_name(ctx.bufnr or vim.api.nvim_get_current_buf())
-                    for i = 2, #argv do
-                        if argv[i] == "${file}" then
-                            argv[i] = file
-                        elseif argv[i] == "${dir}" then
-                            argv[i] = root
+                    local argv
+                    if build then
+                        local out = build({
+                            provider = name,
+                            root = root,
+                            bufnr = bufnr,
+                            file = file,
+                            args = args or {},
+                        })
+                        -- nil / empty: the builder declined and has already said why.
+                        if type(out) ~= "table" or out[1] == nil then
+                            return
                         end
+                        argv = vim.deepcopy(out)
+                    elseif template then
+                        argv = vim.deepcopy(template)
+                        argv[1] = bin or toolchain.resolve(name, c.tool or template[1], root) or argv[1]
+                        -- Token substitution: `${file}` → the current buffer's path, `${dir}` → the root, so a
+                        -- data command can target the file it was run from (run/check/test-file on ${file}).
+                        for i = 2, #argv do
+                            if argv[i] == "${file}" then
+                                argv[i] = file
+                            elseif argv[i] == "${dir}" then
+                                argv[i] = root
+                            end
+                        end
+                    else
+                        return -- data with neither shape of `cmd`: nothing to run
                     end
                     vim.list_extend(argv, args or {})
                     runner.run(name, {
-                        name = label,
+                        name = display_label(argv, root),
                         cmd = argv,
                         cwd = root,
                         group = c.group or "Run",

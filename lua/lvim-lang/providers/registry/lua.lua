@@ -8,6 +8,80 @@
 --
 ---@module "lvim-lang.providers.registry.lua"
 
+-- ── which interpreter runs THIS Lua file ─────────────────────────────────────
+-- A Lua file in this editor is one of two different languages sharing a syntax: a plain Lua script,
+-- which the standalone interpreter runs, and NEOVIM Lua, which only means anything inside Neovim (it
+-- reads the `vim` global). Handing the second to `lua` fails on its first line —
+-- `attempt to index a nil value (global 'vim')` — so the `run` command picks the interpreter from the
+-- FILE rather than assuming one. `nvim -l <file>` is Neovim's own script mode: it runs the file in
+-- Neovim's Lua with the full API and without loading the user config.
+
+--- Whether `path` is `dir` itself or sits inside it (both already normalised).
+---@param path string
+---@param dir string
+---@return boolean
+local function under(path, dir)
+    return path == dir or path:sub(1, #dir + 1) == dir .. "/"
+end
+
+--- Whether `file` belongs to the EDITOR'S OWN configuration — `stdpath("config")` or any extra XDG
+--- config dir. Nothing there is a standalone script: every file is a module the editor itself loads,
+--- so running one as a separate process is never what the user means, and it is one of two measured
+--- outcomes. `nvim -l init.lua` exits 0 having loaded the WHOLE config a second time — writing to the
+--- state it shares with the running editor (the lvim-space / control-center sqlite databases, the
+--- active theme, the keys-helper cache), which is a concurrent-write hazard, not a dry run. Any other
+--- file there is a module that expects to be `require`d and dies with exit 1.
+--- Plugin modules on the runtimepath are deliberately NOT covered: they only ever exit 1 with
+--- Neovim's own self-explanatory error, they touch nothing, and a plugin repo legitimately holds real
+--- scripts (a probe / a test harness) that `nvim -l` should keep running.
+---@param file string
+---@return boolean
+local function is_editor_config(file)
+    if file == "" then
+        return false
+    end
+    local path = vim.fs.normalize(file)
+    local dirs = { vim.fn.stdpath("config") }
+    vim.list_extend(dirs, vim.fn.stdpath("config_dirs") --[[@as string[] ]])
+    for _, dir in ipairs(dirs) do
+        if under(path, vim.fs.normalize(dir)) then
+            return true
+        end
+    end
+    return false
+end
+
+--- Whether `file` is NEOVIM Lua. Two signals, in order of authority:
+---  1. it lives under a `runtimepath` entry — the config, the data dir, any installed plugin. This is
+---     structural, not a guess: everything there is loaded BY Neovim and is Neovim Lua by definition.
+---  2. it references the `vim` global. This catches Neovim Lua that lives outside the runtimepath —
+---     a project's `.lvim/` config, a scratch script poking at the API — where nothing but the
+---     content can tell. Only the head of the file is read (a `vim.` past that would be unusual, and
+---     this runs on every `run`).
+---@param file string
+---@return boolean
+local function is_nvim_lua(file)
+    if file == "" then
+        return false
+    end
+    local path = vim.fs.normalize(file)
+    for _, rtp in ipairs(vim.api.nvim_list_runtime_paths()) do
+        if under(path, vim.fs.normalize(rtp)) then
+            return true
+        end
+    end
+    local ok, lines = pcall(vim.fn.readfile, file, "", 200)
+    if ok then
+        for _, line in ipairs(lines) do
+            -- `vim.x` / `vim[…]` as a whole word — not `mvim.`, not the word inside a comment's prose
+            if line:match("^vim%s*[%.%[]") or line:match("[^%w_]vim%s*[%.%[]") then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 ---@type LvimLangSpecData
 return {
     name = "lua",
@@ -138,7 +212,43 @@ return {
     },
 
     commands = {
-        run = { cmd = { "lua", "${file}" }, tool = "lua", group = "Run", desc = "lua <file>" },
+        -- A BUILDER, not an argv template: the interpreter depends on the file (see is_nvim_lua).
+        run = {
+            cmd = function(ctx)
+                if ctx.file == "" then
+                    vim.notify("lvim-lang: no file in this buffer to run", vim.log.levels.WARN, { title = "lvim-lang" })
+                    return nil
+                end
+                -- Checked BEFORE the interpreter split: a config file is always Neovim Lua, and the
+                -- point is that no interpreter is the right answer for it (see is_editor_config).
+                if is_editor_config(ctx.file) then
+                    vim.notify(
+                        ("%s belongs to this editor's configuration — running it as a script would load the whole config a second time and write to state it shares with the running editor (session / control-center databases, the active theme). Use `:source %%` to apply it here, or restart."):format(
+                            vim.fn.fnamemodify(ctx.file, ":~:.")
+                        ),
+                        vim.log.levels.WARN,
+                        { title = "lvim-lang" }
+                    )
+                    return nil
+                end
+                if is_nvim_lua(ctx.file) then
+                    -- Neovim's own binary — always present, so nothing to resolve through the toolchain.
+                    return { vim.v.progpath, "-l", ctx.file }
+                end
+                local bin = require("lvim-lang.core.toolchain").resolve("lua", "lua", ctx.root)
+                if not bin then
+                    vim.notify(
+                        "lvim-lang: no Lua interpreter found — install lua or luajit and put it on PATH",
+                        vim.log.levels.WARN,
+                        { title = "lvim-lang" }
+                    )
+                    return nil
+                end
+                return { bin, ctx.file }
+            end,
+            group = "Run",
+            desc = "run the file (nvim -l for Neovim Lua, else the Lua interpreter)",
+        },
         test = {
             cmd = { "busted" },
             tool = "busted",

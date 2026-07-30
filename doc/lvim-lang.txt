@@ -296,6 +296,15 @@ commands / debugging model as the bespoke providers (the compiled ones — Cryst
 Nim / V / Odin / Ada / Hare / Vala / Pascal — debug natively through codelldb); see
 docs/providers/<name>.md.
 
+Lua's `run` picks its interpreter from the FILE, because a Lua file here is one of
+two languages sharing a syntax: `nvim -l <file>` for NEOVIM Lua (a file under a
+'runtimepath' entry, or one referencing the `vim` global — the standalone
+interpreter cannot run it at all), and the toolchain's `lua` / `luajit` for a plain
+script. A file under |stdpath()| "config" is REFUSED with an explanation instead:
+nothing there is a standalone script, and running the config as one loads it a
+second time and writes to state shared with the running editor. Use `:source %`.
+See docs/providers/lua.md.
+
 Declarative Tier 3 providers (config / markup / data): HTML, CSS/SCSS/LESS, JSON,
 YAML, TOML, Markdown, XML and GraphQL. These have no compile / test step, so each ships
 the LSP plus a rich per-filetype formatter / linter catalog (all Mason, opt-in), and
