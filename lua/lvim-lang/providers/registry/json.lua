@@ -14,6 +14,11 @@ return {
                 bin = "vscode-json-language-server",
                 cmd = { "vscode-json-language-server", "--stdio" },
                 filetypes = { "json", "jsonc" },
+                -- The server can format JSON itself, but only when ASKED to at init: without this it
+                -- advertises no `textDocument/formatting`, so a JSON buffer has no formatter at all
+                -- (the external ones below are opt-in, `formatter = false`) and every save reported
+                -- "no matching language servers". Nothing else is needed for plain JSON.
+                init_options = { provideFormatter = true },
             },
         },
         default = "json-lsp",

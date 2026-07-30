@@ -8,7 +8,15 @@ return {
     filetypes = { "cmake" },
     root_patterns = { "CMakeLists.txt", "CMakePresets.json", ".git" },
     lsp = {
-        servers = { ["cmake-language-server"] = { mason = "cmake-language-server", filetypes = { "cmake" } } },
+        servers = {
+            ["cmake-language-server"] = {
+                mason = "cmake-language-server",
+                filetypes = { "cmake" },
+                -- Where the build artifacts live: the server reads `compile_commands.json` from here,
+                -- and without it its diagnostics are guesswork.
+                init_options = { buildDirectory = "build" },
+            },
+        },
         default = "cmake-language-server",
     },
     ft = {

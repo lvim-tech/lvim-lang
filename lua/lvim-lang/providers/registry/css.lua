@@ -14,6 +14,9 @@ return {
                 bin = "vscode-css-language-server",
                 cmd = { "vscode-css-language-server", "--stdio" },
                 filetypes = { "css", "scss", "less" },
+                -- Same as json-lsp: the server formats CSS itself, but only when asked at init.
+                -- Without it a CSS buffer has no formatter at all (the external ones are opt-in).
+                init_options = { provideFormatter = true },
             },
         },
         default = "css-lsp",
