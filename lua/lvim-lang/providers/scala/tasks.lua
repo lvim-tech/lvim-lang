@@ -68,7 +68,7 @@ local function run_args(tool, root, main_class, prog)
         end
         return { "run" }
     elseif tool == "mill" then
-        local mod = buildtool.module(root)
+        local mod = buildtool.module()
         if not mod then
             vim.notify(
                 'lvim-lang: mill needs a module to run — set providers.scala.mill_module (e.g. "app")',

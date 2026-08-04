@@ -98,7 +98,7 @@ end
 ---@return fun(err: any, result: table, ctx: table)
 function M.handler()
     arm_cleanup()
-    return function(err, result, _ctx)
+    return function(err, result)
         if err or type(result) ~= "table" or not result.uri or type(result.outline) ~= "table" then
             return
         end

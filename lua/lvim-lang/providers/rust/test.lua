@@ -55,10 +55,10 @@ local function enclosing_fn(bufnr)
 end
 
 --- `:LvimLang test-func` — run the `#[test]` function under the cursor (`cargo test <name>`).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local name = enclosing_fn(ctx.bufnr)
     if not name then
         vim.notify("lvim-lang: cursor is not inside a function", vim.log.levels.WARN, TITLE)

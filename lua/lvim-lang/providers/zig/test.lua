@@ -65,10 +65,10 @@ end
 
 --- `:LvimLang test-func` — run the `test` block under the cursor
 --- (`zig test <file> --test-filter <name>`).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local bufnr = ctx.bufnr or vim.api.nvim_get_current_buf()
     local file = vim.api.nvim_buf_get_name(bufnr)
     if file == "" then

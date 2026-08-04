@@ -129,10 +129,8 @@ local function enclosing(bufnr)
 end
 
 --- `:LvimLang debug` — continue / start a debug session (lvim-dap picks a configuration).
----@param _args string[]
----@param _ctx table
 ---@return nil
-function M.debug(_args, _ctx)
+function M.debug()
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)
@@ -144,10 +142,10 @@ end
 --- `:LvimLang debug-test` — debug exactly the JUnit method under the cursor. Starts the build tool's
 --- test task for that method with remote debugging enabled (Gradle `--debug-jvm` / Maven
 --- `-Dmaven.surefire.debug`) — the JVM suspends on the JDWP port — then attaches the debugger.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.debug_test(_args, ctx)
+function M.debug_test(_, ctx)
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)

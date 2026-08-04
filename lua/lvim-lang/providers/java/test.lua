@@ -116,10 +116,10 @@ end
 
 --- `:LvimLang test-func` — run the single JUnit method under the cursor
 --- (`--tests pkg.Class.method` / `-Dtest=Class#method`).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local class, method = enclosing(ctx.bufnr)
     if not (class and method) then
         vim.notify("lvim-lang: cursor is not inside a test method", vim.log.levels.WARN, TITLE)
@@ -136,10 +136,10 @@ end
 
 --- `:LvimLang test-file` — run every JUnit test in the current buffer's class
 --- (`--tests pkg.Class` / `-Dtest=Class`).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.file(_args, ctx)
+function M.file(_, ctx)
     local class = select(1, enclosing(ctx.bufnr))
     if not class then
         -- Fall back to the file's basename (a top-level class matches its file name in Java).

@@ -113,7 +113,7 @@ local function run_suite(root, fqcn_name, label)
     if tool == "sbt" then
         cmd[#cmd + 1] = "testOnly " .. fqcn_name -- one sbt command string
     elseif tool == "mill" then
-        local mod = buildtool.module(root)
+        local mod = buildtool.module()
         if not mod then
             vim.notify(
                 "lvim-lang: mill needs a module to filter tests — set providers.scala.mill_module",
@@ -133,10 +133,10 @@ end
 --- `:LvimLang test-file` — run every test in the current buffer's suite (`testOnly pkg.Suite`).
 --- Falls back to the file's basename when no suite type is found (a Scala suite usually matches its
 --- file name).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.file(_args, ctx)
+function M.file(_, ctx)
     local bufnr = ctx.bufnr
     local suite = enclosing_suite(bufnr)
     if not suite then
@@ -154,10 +154,10 @@ end
 --- `:LvimLang test-func` — Scala test frameworks have no clean cross-framework single-test selector,
 --- so this runs the enclosing SUITE (the finest granularity that works everywhere), with a one-time
 --- notice explaining the class-level scope.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local bufnr = ctx.bufnr
     local suite = enclosing_suite(bufnr)
     if not suite then

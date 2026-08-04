@@ -12,7 +12,6 @@
 ---@module "lvim-lang.providers.cpp.test"
 
 local config = require("lvim-lang.config")
-local toolchain = require("lvim-lang.core.toolchain")
 local runner = require("lvim-lang.core.runner")
 
 local ts = vim.treesitter
@@ -159,10 +158,10 @@ end
 
 --- `:LvimLang test-func` — run the GoogleTest / Catch2 test under the cursor through CTest
 --- (`ctest -R "^<name>$" --output-on-failure`). Requires a CMake project with registered tests.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local bufnr = ctx.bufnr or vim.api.nvim_get_current_buf()
     local root = ctx.root or root_of(bufnr)
     if vim.fn.filereadable(root .. "/CMakeLists.txt") ~= 1 then

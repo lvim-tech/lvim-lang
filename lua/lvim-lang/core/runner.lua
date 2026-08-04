@@ -53,7 +53,7 @@ function M.run(provider, spec)
             pcall(prev_exit, task)
         end
         vim.schedule(function()
-            pcall(vim.cmd, "checktime")
+            pcall(vim.cmd.checktime)
         end)
     end
     local task = tasks.run({

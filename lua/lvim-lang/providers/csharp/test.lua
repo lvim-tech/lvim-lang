@@ -71,6 +71,7 @@ local function enclosing_test(bufnr)
         return nil
     end
     local method
+    ---@type TSNode?
     local n = node
     while n do
         if n:type() == "method_declaration" then
@@ -117,10 +118,10 @@ end
 
 --- `:LvimLang test-func` — run the single test method under the cursor via
 --- `dotnet test --filter "FullyQualifiedName~Class.Method"`.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local name = enclosing_test(ctx.bufnr)
     if not name then
         vim.notify(
@@ -135,10 +136,10 @@ end
 
 --- `:LvimLang test-file` — run every test whose type name matches the current buffer's class. Uses
 --- the file's base name as the class filter (the C# convention: one public test class per file).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.file(_args, ctx)
+function M.file(_, ctx)
     local buf = vim.api.nvim_buf_get_name(ctx.bufnr)
     if buf == "" then
         vim.notify("lvim-lang: no file for this buffer", vim.log.levels.WARN, TITLE)

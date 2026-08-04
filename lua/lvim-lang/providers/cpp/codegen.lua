@@ -47,10 +47,10 @@ local function link_db(root, dir)
 end
 
 --- `:LvimLang compile-commands` — generate the clangd compilation database for the project.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.compile_commands(_args, ctx)
+function M.compile_commands(_, ctx)
     local root = ctx.root or require("lvim-lang.providers.cpp.tasks").root()
     local dir = opts().build_dir or "build"
     if vim.fn.filereadable(root .. "/CMakeLists.txt") == 1 then

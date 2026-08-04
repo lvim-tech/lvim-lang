@@ -42,10 +42,9 @@ end
 --- express it (bloop has no dep verbs; mill needs a configured module).
 ---@param tool "sbt"|"mill"|"bloop"
 ---@param action "tree"|"refresh"|"install"
----@param root string
 ---@param quiet boolean  suppress the notice (for template builders that just skip)
 ---@return string[]|nil
-local function deps_args(tool, action, root, quiet)
+local function deps_args(tool, action, quiet)
     if tool == "sbt" then
         return ({
             tree = { "dependencyTree" },
@@ -53,7 +52,7 @@ local function deps_args(tool, action, root, quiet)
             install = { "publishLocal" },
         })[action]
     elseif tool == "mill" then
-        local mod = buildtool.module(root)
+        local mod = buildtool.module()
         if not mod then
             if not quiet then
                 vim.notify(
@@ -93,7 +92,7 @@ local function run(action, args, ctx)
         vim.notify("lvim-lang: no sbt / mill / bloop project found", vim.log.levels.WARN, TITLE)
         return
     end
-    local tail = deps_args(tool, action, root, false)
+    local tail = deps_args(tool, action, false)
     if not tail then
         return
     end
@@ -150,7 +149,7 @@ for _, action in ipairs(SUBS) do
             if not tool then
                 return nil
             end
-            local tail = deps_args(tool, action, root, true)
+            local tail = deps_args(tool, action, true)
             if not tail then
                 return nil
             end

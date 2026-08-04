@@ -24,10 +24,8 @@ local function client()
 end
 
 --- `:LvimLang organize-imports` — drop unused imports and add/order the needed ones for the buffer.
----@param _args string[]
----@param _ctx table
 ---@return nil
-function M.organize_imports(_args, _ctx)
+function M.organize_imports()
     local c = client()
     if not c then
         return
@@ -85,26 +83,20 @@ local function extract(keyword)
 end
 
 --- `:LvimLang extract-variable` — extract the selection into a local variable.
----@param _args string[]
----@param _ctx table
 ---@return nil
-function M.extract_variable(_args, _ctx)
+function M.extract_variable()
     extract("variable")
 end
 
 --- `:LvimLang extract-constant` — extract the selection into a `static final` constant.
----@param _args string[]
----@param _ctx table
 ---@return nil
-function M.extract_constant(_args, _ctx)
+function M.extract_constant()
     extract("constant")
 end
 
 --- `:LvimLang extract-method` — extract the selection into a new method.
----@param _args string[]
----@param _ctx table
 ---@return nil
-function M.extract_method(_args, _ctx)
+function M.extract_method()
     extract("method")
 end
 

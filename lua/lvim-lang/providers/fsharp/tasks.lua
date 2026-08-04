@@ -16,8 +16,6 @@ local toolchain = require("lvim-lang.core.toolchain")
 local runner = require("lvim-lang.core.runner")
 local ensure = require("lvim-lang.core.ensure")
 
-local TITLE = { title = "lvim-lang" }
-
 local M = {}
 
 --- Whether a directory entry name is an F# project-root marker (a solution / project file, the paket

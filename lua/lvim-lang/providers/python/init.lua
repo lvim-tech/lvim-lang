@@ -58,7 +58,7 @@ local DATA = {
                 filetypes = { "python" },
                 role = "types", -- completion / hover / definition / rename / inlay hints
                 -- ruff owns formatting; basedpyright must not also format the buffer.
-                on_attach = function(client, _bufnr)
+                on_attach = function(client)
                     disable_cap(client, "documentFormattingProvider")
                     disable_cap(client, "documentRangeFormattingProvider")
                 end,
@@ -88,7 +88,7 @@ local DATA = {
                 filetypes = { "python" },
                 role = "diagnostics", -- lint diagnostics + format + organize imports
                 -- basedpyright owns hover; ruff's (rule docs) would otherwise double up.
-                on_attach = function(client, _bufnr)
+                on_attach = function(client)
                     disable_cap(client, "hoverProvider")
                 end,
                 init_options = {

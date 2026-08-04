@@ -60,7 +60,7 @@ end
 -- only in a .NET project (a `.sln`/`.fsproj`/`paket.dependencies` at or above the resolved root).
 ---@type table[]
 M.templates = {}
-for sub, s in pairs(SUBS) do
+for _, s in pairs(SUBS) do
     M.templates[#M.templates + 1] = {
         name = s.label,
         desc = s.desc,

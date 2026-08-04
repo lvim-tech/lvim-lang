@@ -84,10 +84,10 @@ function M.suite(args, ctx)
 end
 
 --- `:LvimLang test-file` — `pytest` over the current buffer's file.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.file(_args, ctx)
+function M.file(_, ctx)
     local file = vim.api.nvim_buf_get_name(ctx.bufnr)
     if file == "" then
         vim.notify("lvim-lang: no file to test", vim.log.levels.WARN, TITLE)
@@ -98,10 +98,10 @@ end
 
 --- `:LvimLang test-func` — run the single `def test_*` under the cursor as a pytest node id
 --- (`file::[Class::]test_name`).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local func, class = enclosing_test(ctx.bufnr)
     if not func then
         vim.notify("lvim-lang: cursor is not inside a `def test_*` function", vim.log.levels.WARN, TITLE)

@@ -108,6 +108,7 @@ local function enclosing_test(bufnr)
     if not ok or not node then
         return nil
     end
+    ---@type TSNode?
     local n = node
     while n do
         if BINDING_NODES[n:type()] and has_test_attr(n, bufnr) then
@@ -165,10 +166,10 @@ end
 
 --- `:LvimLang test-func` — run the single test binding under the cursor via
 --- `dotnet test --filter "FullyQualifiedName~<name>"`.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local name = enclosing_test(ctx.bufnr)
     if not name then
         vim.notify(
@@ -184,10 +185,10 @@ end
 --- `:LvimLang test-file` — run every attributed test binding in the current buffer, OR-ed into one
 --- `--filter`. Falls back to a warning when no attributed test is found (combinator-style Expecto
 --- suites are not discoverable — use `:LvimLang test` for those).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.file(_args, ctx)
+function M.file(_, ctx)
     local bufnr = ctx.bufnr or vim.api.nvim_get_current_buf()
     local names = file_tests(bufnr)
     if #names == 0 then

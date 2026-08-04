@@ -28,17 +28,6 @@ local function opts()
     return config.providers.elixir or {}
 end
 
---- The Elixir project root for a buffer (else cwd).
----@param bufnr integer
----@return string
-local function root_of(bufnr)
-    local name = vim.api.nvim_buf_get_name(bufnr)
-    if name ~= "" then
-        return vim.fs.root(bufnr, { "mix.exs", ".git" }) or vim.fs.dirname(name)
-    end
-    return vim.uv.cwd() or "."
-end
-
 --- Resolve the elixir-ls debug adapter binary for `root`: the toolchain resolution (config → mason →
 --- PATH), else the bare name (so the error surfaces at launch with a clear "install elixir-ls" hint).
 ---@param root string
@@ -87,10 +76,8 @@ function M.spec()
 end
 
 --- `:LvimLang debug` — continue / start a debug session (lvim-dap picks a configuration).
----@param _args string[]
----@param _ctx table
 ---@return nil
-function M.debug(_args, _ctx)
+function M.debug()
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)
@@ -101,10 +88,10 @@ end
 
 --- `:LvimLang debug-test` — debug exactly the ExUnit test under the cursor. Runs
 --- `mix test <file>:<line>` under the elixir-ls debugger (the test addressed by its block line).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.debug_test(_args, ctx)
+function M.debug_test(_, ctx)
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)

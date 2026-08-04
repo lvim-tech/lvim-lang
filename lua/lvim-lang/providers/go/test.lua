@@ -66,10 +66,10 @@ local function run_test(cwd, argv, name, hooks)
 end
 
 --- `:LvimLang test-func` — run the single Test/Benchmark/Fuzz/Example function under the cursor.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local name, is_bench = enclosing_test(ctx.bufnr)
     if not name then
         vim.notify("lvim-lang: cursor is not inside a Test/Benchmark/Fuzz/Example function", vim.log.levels.WARN, TITLE)
@@ -82,10 +82,8 @@ function M.func(_args, ctx)
 end
 
 --- `:LvimLang test-file` — run the tests in the current buffer's package.
----@param _args string[]
----@param _ctx table
 ---@return nil
-function M.file(_args, _ctx)
+function M.file()
     run_test(buffer_pkg_dir(), { "test", "-v", "." }, "go test (file package)")
 end
 

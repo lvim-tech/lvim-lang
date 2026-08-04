@@ -88,11 +88,10 @@ function M.project(root)
     return vim.fs.basename(root)
 end
 
---- The mill MODULE name for a root (`mill <module>.run` / `<module>.test.testOnly`): the configured
---- `mill_module`, or nil when unset (the caller falls back to the whole-suite target and notifies).
----@param root string
+--- The configured mill MODULE name (`mill <module>.run` / `<module>.test.testOnly`), or nil when
+--- unset (the caller falls back to the whole-suite target and notifies).
 ---@return string|nil
-function M.module(root)
+function M.module()
     local m = opts().mill_module
     if type(m) == "string" and m ~= "" then
         return m

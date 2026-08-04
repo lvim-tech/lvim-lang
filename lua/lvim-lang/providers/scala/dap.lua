@@ -114,10 +114,8 @@ end
 
 --- `:LvimLang debug` — continue / start a debug session (lvim-dap picks a configuration; metals
 --- resolves the target from the current file).
----@param _args string[]
----@param _ctx table
 ---@return nil
-function M.debug(_args, _ctx)
+function M.debug()
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)
@@ -129,10 +127,10 @@ end
 --- `:LvimLang debug-test` — start a metals "testFile" debug session for the current buffer (metals
 --- resolves the suite(s) in the file). Scala has no clean per-test debug selector, so this debugs the
 --- file's suites, not a single DSL test.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.debug_test(_args, ctx)
+function M.debug_test(_, ctx)
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)

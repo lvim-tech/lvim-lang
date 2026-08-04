@@ -114,10 +114,10 @@ function M.pick(root, cb)
 end
 
 --- Command adapter (`:LvimLang config`): pick the active run configuration for the buffer's root.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table  { provider, root, bufnr }
 ---@return nil
-function M.command(_args, ctx)
+function M.command(_, ctx)
     M.pick(ctx.root)
 end
 

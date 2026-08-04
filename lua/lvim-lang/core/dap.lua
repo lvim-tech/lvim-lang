@@ -84,7 +84,7 @@ function M.build(provider, dap, root)
         else
             local cmd = bin(provider, a.tool or name, root)
             if a.kind == "server" then
-                adapters[name] = function(cb, _c)
+                adapters[name] = function(cb)
                     cb({
                         type = "server",
                         port = "${port}",

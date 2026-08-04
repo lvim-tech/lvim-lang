@@ -166,18 +166,18 @@ local function restart(ctx, full, label)
 end
 
 --- `:LvimLang reload` — hot reload.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.reload(_args, ctx)
+function M.reload(_, ctx)
     restart(ctx, false, "hot reload")
 end
 
 --- `:LvimLang restart` — hot restart.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.restart(_args, ctx)
+function M.restart(_, ctx)
     restart(ctx, true, "hot restart")
 end
 
@@ -205,18 +205,18 @@ local function terminate(ctx, method, label)
 end
 
 --- `:LvimLang quit` — stop the running app and end the session.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.quit(_args, ctx)
+function M.quit(_, ctx)
     terminate(ctx, "app.stop", "stopping app")
 end
 
 --- `:LvimLang detach` — detach from the app (leave it running) and end the session.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.detach(_args, ctx)
+function M.detach(_, ctx)
     terminate(ctx, "app.detach", "detaching")
 end
 

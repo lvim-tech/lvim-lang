@@ -48,7 +48,7 @@ end
 -- only in a Cargo project (Cargo.toml at the resolved root).
 ---@type table[]
 M.templates = {}
-for sub, s in pairs(SUBS) do
+for _, s in pairs(SUBS) do
     M.templates[#M.templates + 1] = {
         name = s.label,
         desc = s.desc,

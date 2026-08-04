@@ -76,7 +76,7 @@ end
 --- start a debug session (`vscode.java.startDebugSession`) and connects to the returned port.
 ---@return fun(callback: fun(adapter: table), config: table)
 local function adapter()
-    return function(callback, _config)
+    return function(callback)
         local clients = vim.lsp.get_clients({ name = "jdtls" })
         local client = clients[1]
         if not client then
@@ -155,10 +155,8 @@ end
 --- `:LvimLang debug` — resolve the project's MAIN classes from jdtls and launch one under the debugger
 --- (a picker when several exist). Falls back to lvim-dap's own configuration picker — the base attach /
 --- manual-launch configs — when jdtls is not attached yet or resolves no main class.
----@param _args string[]
----@param _ctx table
 ---@return nil
-function M.debug(_args, _ctx)
+function M.debug()
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)
@@ -213,10 +211,10 @@ end
 --- `:LvimLang debug-test` — debug exactly the JUnit method under the cursor. Starts the build tool's
 --- test task for that method with remote debugging enabled (Gradle `--debug-jvm` / Maven
 --- `-Dmaven.surefire.debug`) — the JVM suspends on the JDWP port — then attaches the debugger.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.debug_test(_args, ctx)
+function M.debug_test(_, ctx)
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)

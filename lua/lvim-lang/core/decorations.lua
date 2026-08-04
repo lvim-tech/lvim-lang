@@ -22,8 +22,6 @@
 
 local M = {}
 
----@type table<string, LvimLangDecorationSpec>  id → spec
-local specs = {}
 ---@type table<string, boolean>                 id → runtime on/off (seeded from spec.enabled())
 local enabled = {}
 ---@type table<integer, table<string, LvimLangMark[]>>  bufnr → id → marks (repaint cache)
@@ -84,7 +82,6 @@ end
 ---@param spec LvimLangDecorationSpec
 ---@return nil
 function M.register(spec)
-    specs[spec.id] = spec
     if enabled[spec.id] == nil then
         enabled[spec.id] = spec.enabled() ~= false
     end
@@ -97,7 +94,7 @@ end
 ---@return fun(err: any, result: table, ctx: table)
 function M.handler(spec)
     M.register(spec)
-    return function(err, result, _ctx)
+    return function(err, result)
         if err or type(result) ~= "table" or not result.uri then
             return
         end

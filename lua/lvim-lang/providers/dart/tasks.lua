@@ -35,10 +35,10 @@ local function run_flutter(root, argv, name, group)
 end
 
 --- `:LvimLang clean` — `flutter clean`.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.clean(_args, ctx)
+function M.clean(_, ctx)
     run_flutter(ctx.root, { "clean" }, "flutter clean", "Build")
 end
 
@@ -53,10 +53,10 @@ function M.test(args, ctx)
 end
 
 --- `:LvimLang doctor` — `flutter doctor -v`.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.doctor(_args, ctx)
+function M.doctor(_, ctx)
     run_flutter(ctx.root, { "doctor", "-v" }, "flutter doctor", "Doctor")
 end
 

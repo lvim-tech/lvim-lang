@@ -87,10 +87,8 @@ local function enclosing_test(bufnr)
 end
 
 --- `:LvimLang debug` — continue / start a debug session (lvim-dap picks a configuration).
----@param _args string[]
----@param _ctx table
 ---@return nil
-function M.debug(_args, _ctx)
+function M.debug()
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)
@@ -101,10 +99,10 @@ end
 
 --- `:LvimLang debug-test` — debug exactly the test under the cursor (`dlv` in test mode with
 --- `-test.run ^Name$`), in the file's package directory.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.debug_test(_args, ctx)
+function M.debug_test(_, ctx)
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)

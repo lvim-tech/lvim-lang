@@ -87,10 +87,10 @@ end
 --- `:LvimLang test-func` — run the EUnit test function under the cursor. `*_test` / `*_test_`
 --- functions run as `rebar3 eunit --test=<module>:<function>`; the cursor elsewhere falls back to the
 --- whole module (`--module=<module>`).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local module = module_of(ctx.bufnr)
     if not module then
         vim.notify("lvim-lang: no Erlang module for this buffer", vim.log.levels.WARN, TITLE)
@@ -106,10 +106,10 @@ function M.func(_args, ctx)
 end
 
 --- `:LvimLang test-file` — run every EUnit test in the current module (`rebar3 eunit --module=<mod>`).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.file(_args, ctx)
+function M.file(_, ctx)
     local module = module_of(ctx.bufnr)
     if not module then
         vim.notify("lvim-lang: no Erlang module for this buffer", vim.log.levels.WARN, TITLE)
@@ -120,10 +120,10 @@ end
 
 --- `:LvimLang ct-suite` — run the current Common Test suite (`rebar3 ct --suite=<module>`). The
 --- buffer must be a `*_SUITE.erl` file.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.ct_suite(_args, ctx)
+function M.ct_suite(_, ctx)
     local module = module_of(ctx.bufnr)
     if not module or not module:match("_SUITE$") then
         vim.notify(

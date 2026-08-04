@@ -56,7 +56,7 @@ end
 -- only in a dune project (dune-project at the resolved root).
 ---@type table[]
 M.templates = {}
-for sub, s in pairs(SUBS) do
+for _, s in pairs(SUBS) do
     M.templates[#M.templates + 1] = {
         name = s.label,
         desc = s.desc,

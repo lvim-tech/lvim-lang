@@ -58,7 +58,7 @@ function M.stub(args, ctx)
                 return
             end
             vim.notify(("lvim-lang: stubs for %s written under typings/"):format(import), vim.log.levels.INFO, TITLE)
-            pcall(vim.cmd, "checktime")
+            pcall(vim.cmd.checktime)
         end)
     end)
 end

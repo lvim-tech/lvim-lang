@@ -60,26 +60,26 @@ local function toggle_bool(ctx, key, method, label)
 end
 
 --- `:LvimLang inspect` — toggle the widget inspector overlay.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.inspect_widget(_args, ctx)
+function M.inspect_widget(_, ctx)
     toggle_bool(ctx, "inspector", "ext.flutter.inspector.show", "widget inspector")
 end
 
 --- `:LvimLang paint` — toggle debug paint (visual layout debugging).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.visual_debug(_args, ctx)
+function M.visual_debug(_, ctx)
     toggle_bool(ctx, "debugPaint", "ext.flutter.debugPaint", "debug paint")
 end
 
 --- `:LvimLang brightness` — flip the app between light and dark brightness.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.toggle_brightness(_args, ctx)
+function M.toggle_brightness(_, ctx)
     local rec = running_app(ctx)
     if not rec then
         return
@@ -90,10 +90,10 @@ function M.toggle_brightness(_args, ctx)
 end
 
 --- `:LvimLang platform` — override the app's target platform (picked through lvim-ui).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.target_platform(_args, ctx)
+function M.target_platform(_, ctx)
     local rec = running_app(ctx)
     if not rec then
         return

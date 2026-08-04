@@ -10,8 +10,6 @@
 local toolchain = require("lvim-lang.core.toolchain")
 local runner = require("lvim-lang.core.runner")
 
-local TITLE = { title = "lvim-lang" }
-
 local M = {}
 
 --- Resolve the Elixir project root for the current buffer (else cwd).

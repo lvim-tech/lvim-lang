@@ -36,10 +36,10 @@ local codec = {
 
 --- `:LvimLang devtools` — start the DevTools server and open its URL (with the running app's VM
 --- service URI when a session is live).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table  { provider, root, bufnr }
 ---@return nil
-function M.open(_args, ctx)
+function M.open(_, ctx)
     local root = ctx.root
     state.devtools = state.devtools or {}
     if state.devtools[root] and state.devtools[root]:alive() then

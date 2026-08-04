@@ -54,7 +54,7 @@ end
 --- The CodeLLDB server adapter: `codelldb --port ${port}` (lvim-dap resolves a free port).
 ---@return fun(callback: fun(adapter: table), config: table)
 local function codelldb_adapter()
-    return function(callback, _config)
+    return function(callback)
         callback({
             type = "server",
             port = "${port}",
@@ -152,10 +152,8 @@ local function xctest_bundle(root)
 end
 
 --- `:LvimLang debug` — continue / start a debug session (lvim-dap picks a configuration).
----@param _args string[]
----@param _ctx table
 ---@return nil
-function M.debug(_args, _ctx)
+function M.debug()
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)
@@ -167,10 +165,10 @@ end
 --- `:LvimLang debug-test` — build the test bundle (`swift build --build-tests`) and launch it under
 --- lldb-dap, filtered to the XCTest method under the cursor. On Linux the `.xctest` bundle is an
 --- executable that takes the `<Class>/<method>` filter as an argument.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.debug_test(_args, ctx)
+function M.debug_test(_, ctx)
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)

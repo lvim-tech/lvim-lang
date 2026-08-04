@@ -39,7 +39,7 @@ end
 --- The CodeLLDB server adapter: `codelldb --port ${port}` (lvim-dap resolves a free port).
 ---@return fun(callback: fun(adapter: table), config: table)
 local function adapter()
-    return function(callback, _config)
+    return function(callback)
         callback({
             type = "server",
             port = "${port}",
@@ -94,10 +94,8 @@ local function enclosing_fn(bufnr)
 end
 
 --- `:LvimLang debug` — continue / start a debug session (lvim-dap picks a configuration).
----@param _args string[]
----@param _ctx table
 ---@return nil
-function M.debug(_args, _ctx)
+function M.debug()
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)
@@ -108,10 +106,10 @@ end
 
 --- `:LvimLang debug-test` — build the test binary (`cargo test --no-run`, JSON output to locate the
 --- executable) and launch it under CodeLLDB filtered to the test under the cursor (`--exact <name>`).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.debug_test(_args, ctx)
+function M.debug_test(_, ctx)
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)

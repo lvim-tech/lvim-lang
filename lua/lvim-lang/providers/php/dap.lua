@@ -88,10 +88,8 @@ end
 
 --- `:LvimLang debug` — continue / start a debug session (lvim-dap picks a configuration: the Xdebug
 --- listener or the current-script launch).
----@param _args string[]
----@param _ctx table
 ---@return nil
-function M.debug(_args, _ctx)
+function M.debug()
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)

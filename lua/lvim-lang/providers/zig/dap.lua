@@ -55,7 +55,7 @@ end
 --- The codelldb server adapter: `codelldb --port ${port}` (lvim-dap resolves a free port).
 ---@return fun(callback: fun(adapter: table), config: table)
 local function codelldb_adapter()
-    return function(callback, _config)
+    return function(callback)
         callback({
             type = "server",
             port = "${port}",
@@ -123,10 +123,8 @@ function M.spec()
 end
 
 --- `:LvimLang debug` — continue / start a debug session (lvim-dap picks a configuration).
----@param _args string[]
----@param _ctx table
 ---@return nil
-function M.debug(_args, _ctx)
+function M.debug()
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, { title = "lvim-lang" })

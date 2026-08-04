@@ -72,10 +72,10 @@ local function enclosing_test(bufnr)
 end
 
 --- `:LvimLang test-func` — run the XCTest method under the cursor (`swift test --filter <Class>/<method>`).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local filter, method = enclosing_test(ctx.bufnr)
     if not filter then
         vim.notify("lvim-lang: cursor is not inside an XCTest test method", vim.log.levels.WARN, TITLE)

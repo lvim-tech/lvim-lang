@@ -67,10 +67,10 @@ end
 --- `:LvimLang test-func` — run the tests in the DIRECTORY of the file under the cursor
 --- (`dune runtest <dir>`) — the finest scope dune supports (it has no per-test filter). Notifies that
 --- the whole directory's tests run, naming the enclosing binding when one is found.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local bufnr = ctx.bufnr or vim.api.nvim_get_current_buf()
     local root = ctx.root or root_of(bufnr)
     local file = vim.api.nvim_buf_get_name(bufnr)

@@ -151,10 +151,10 @@ local function run_filtered(root, patterns, label)
 end
 
 --- `:LvimLang test-func` — run the hspec example under the cursor (`--match "/describe/…/it/"`).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local parts = lineage(ctx.bufnr)
     if #parts == 0 then
         vim.notify("lvim-lang: cursor is not inside an hspec describe/it example", vim.log.levels.WARN, TITLE)

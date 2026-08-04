@@ -62,7 +62,7 @@ end
 --- The js-debug server adapter: `js-debug-adapter ${port}` (lvim-dap resolves a free port).
 ---@return fun(callback: fun(adapter: table), config: table)
 local function adapter()
-    return function(callback, _config)
+    return function(callback)
         callback({
             type = "server",
             host = "localhost",
@@ -150,10 +150,8 @@ local function enclosing_title(bufnr)
 end
 
 --- `:LvimLang debug` — continue / start a debug session (lvim-dap picks a configuration).
----@param _args string[]
----@param _ctx table
 ---@return nil
-function M.debug(_args, _ctx)
+function M.debug()
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)
@@ -164,10 +162,10 @@ end
 
 --- `:LvimLang debug-test` — debug the test under the cursor: launch the project-local test runner
 --- (vitest / jest) under js-debug, filtered to the enclosing title.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.debug_test(_args, ctx)
+function M.debug_test(_, ctx)
     local ok, dap = pcall(require, "lvim-dap")
     if not ok then
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)

@@ -134,10 +134,10 @@ function M.suite(args, ctx)
 end
 
 --- `:LvimLang test-file` — run the current buffer's file.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.file(_args, ctx)
+function M.file(_, ctx)
     local file = vim.api.nvim_buf_get_name(ctx.bufnr)
     if file == "" then
         vim.notify("lvim-lang: no file to test", vim.log.levels.WARN, TITLE)
@@ -150,10 +150,10 @@ function M.file(_args, ctx)
 end
 
 --- `:LvimLang test-func` — run the `it` / `test` under the cursor (`-t <title>`).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local title = enclosing_title(ctx.bufnr)
     if not title then
         vim.notify("lvim-lang: cursor is not inside an it()/test()/describe() block", vim.log.levels.WARN, TITLE)

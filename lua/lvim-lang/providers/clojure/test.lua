@@ -132,10 +132,10 @@ end
 
 --- `:LvimLang test-func` — run the single `deftest` under the cursor when the tool can filter to it,
 --- else the whole suite with a notice.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local test = enclosing_test(ctx.bufnr)
     if not test then
         vim.notify("lvim-lang: cursor is not inside a deftest", vim.log.levels.WARN, TITLE)
@@ -168,10 +168,10 @@ end
 
 --- `:LvimLang test-file` — run every test in the current buffer's namespace when the tool can filter
 --- to it, else the whole suite with a notice.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.file(_args, ctx)
+function M.file(_, ctx)
     local ns = namespace(ctx.bufnr)
     if not ns then
         vim.notify("lvim-lang: no (ns …) form in this buffer", vim.log.levels.WARN, TITLE)

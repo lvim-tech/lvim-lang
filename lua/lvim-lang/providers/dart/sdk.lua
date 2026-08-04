@@ -13,10 +13,10 @@ local TITLE = { title = "lvim-lang" }
 local M = {}
 
 --- `:LvimLang install` — clone/install the configured Flutter SDK through lvim-pkg.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table  { provider, root, bufnr }
 ---@return nil
-function M.install(_args, ctx)
+function M.install(_, ctx)
     local ok, pkg = pcall(require, "lvim-pkg")
     if not ok or type(pkg.install_sdk) ~= "function" then
         vim.notify("lvim-lang: lvim-pkg with SDK support is not available", vim.log.levels.WARN, TITLE)

@@ -112,10 +112,10 @@ function M.command(args, ctx)
 end
 
 --- The `:LvimLang update` command: `swift package update` (all dependencies).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.update(_args, ctx)
+function M.update(_, ctx)
     run_swift(ctx.root or resolve_root(), { "package", "update" }, "swift package update")
 end
 

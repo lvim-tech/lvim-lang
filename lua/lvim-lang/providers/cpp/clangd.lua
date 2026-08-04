@@ -22,10 +22,10 @@ end
 
 --- `:LvimLang switch-header` — toggle between a `.c`/`.cpp` source and its `.h`/`.hpp` header via
 --- clangd's `textDocument/switchSourceHeader` extension.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.switch_header(_args, ctx)
+function M.switch_header(_, ctx)
     local bufnr = ctx.bufnr
     local client = clangd_client(bufnr)
     if not client then
@@ -43,10 +43,10 @@ end
 
 --- `:LvimLang symbol-info` — show clangd's symbol metadata (name + container) for the symbol at the
 --- cursor in a small float, via clangd's `textDocument/symbolInfo` extension.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.symbol_info(_args, ctx)
+function M.symbol_info(_, ctx)
     local bufnr = ctx.bufnr
     local client = clangd_client(bufnr)
     if not client then

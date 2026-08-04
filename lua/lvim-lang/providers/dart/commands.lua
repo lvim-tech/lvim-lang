@@ -33,10 +33,10 @@ local function no_client()
 end
 
 --- `dart/textDocument/super` — jump to the super implementation/definition at the cursor.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table  { provider, root, bufnr }
 ---@return nil
-local function super(_args, ctx)
+local function super(_, ctx)
     local client = dart_client(ctx.bufnr)
     if not client then
         return no_client()
@@ -54,10 +54,10 @@ local function super(_args, ctx)
 end
 
 --- `dart/reanalyze` — ask dartls to re-run analysis for the whole project.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table  { provider, root, bufnr }
 ---@return nil
-local function reanalyze(_args, ctx)
+local function reanalyze(_, ctx)
     local client = dart_client(ctx.bufnr)
     if not client then
         return no_client()
@@ -70,9 +70,8 @@ end
 
 --- `lsp restart` — restart dartls (stop then re-enable, which re-attaches).
 ---@param args string[]
----@param _ctx table
 ---@return nil
-local function lsp(args, _ctx)
+local function lsp(args)
     if args[1] ~= "restart" then
         vim.notify("lvim-lang: usage — :LvimLang lsp restart", vim.log.levels.INFO, TITLE)
         return
@@ -88,10 +87,10 @@ local function lsp(args, _ctx)
 end
 
 --- `fvm` — switch the project's FVM-pinned Flutter SDK version, then invalidate the toolchain.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table  { provider, root, bufnr }
 ---@return nil
-local function fvm(_args, ctx)
+local function fvm(_, ctx)
     local out = vim.fn.systemlist({ "fvm", "list" })
     if vim.v.shell_error ~= 0 then
         vim.notify("lvim-lang: `fvm list` failed (is FVM installed?)", vim.log.levels.WARN, TITLE)
@@ -121,10 +120,8 @@ local function fvm(_args, ctx)
 end
 
 --- `labels` — toggle the closing-labels decorations on/off (live).
----@param _args string[]
----@param _ctx table
 ---@return nil
-local function labels(_args, _ctx)
+local function labels()
     local on = decorations.toggle("closing_labels")
     vim.notify("lvim-lang: closing labels " .. (on and "on" or "off"), vim.log.levels.INFO, TITLE)
 end

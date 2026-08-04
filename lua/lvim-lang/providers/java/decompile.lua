@@ -38,6 +38,8 @@ local function load(bufnr, uri)
         return
     end
     -- `java/classFileContents` takes a TextDocumentIdentifier and returns the class' text as a string.
+    -- custom jdtls method — not in the built-in LSP method union
+    ---@diagnostic disable-next-line: param-type-mismatch
     client:request("java/classFileContents", { uri = uri }, function(err, content)
         if err or type(content) ~= "string" or not vim.api.nvim_buf_is_valid(bufnr) then
             return

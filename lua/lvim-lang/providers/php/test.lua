@@ -65,10 +65,10 @@ end
 
 --- `:LvimLang test-func` — run the single PHPUnit method under the cursor
 --- (`phpunit --filter <method> <file>`).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.func(_args, ctx)
+function M.func(_, ctx)
     local bufnr = ctx.bufnr or vim.api.nvim_get_current_buf()
     local _, method = enclosing(bufnr)
     if not method then
@@ -84,10 +84,10 @@ function M.func(_args, ctx)
 end
 
 --- `:LvimLang test-file` — run every PHPUnit test in the current buffer's file (`phpunit <file>`).
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.file(_args, ctx)
+function M.file(_, ctx)
     local bufnr = ctx.bufnr or vim.api.nvim_get_current_buf()
     local file = vim.api.nvim_buf_get_name(bufnr)
     if file == "" then

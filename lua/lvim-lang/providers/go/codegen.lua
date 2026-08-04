@@ -119,10 +119,10 @@ end
 
 --- `:LvimLang gotests` — generate a table-driven test for the function under the cursor (gotests
 --- `-only`), written to the package's _test.go file (reloaded via :checktime). Needs a saved file.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table
 ---@return nil
-function M.gotests(_args, ctx)
+function M.gotests(_, ctx)
     local bufnr = ctx.bufnr
     local file = vim.api.nvim_buf_get_name(bufnr)
     if file == "" then
@@ -146,7 +146,7 @@ function M.gotests(_args, ctx)
                     return
                 end
                 vim.notify(("lvim-lang: generated tests for %s"):format(name), vim.log.levels.INFO, TITLE)
-                pcall(vim.cmd, "checktime")
+                pcall(vim.cmd.checktime)
             end)
         end)
     end)

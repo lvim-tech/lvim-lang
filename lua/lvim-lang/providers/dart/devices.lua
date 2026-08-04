@@ -154,10 +154,10 @@ function M.choose(ctx, cb)
 end
 
 --- `:LvimLang emulators` — list emulators and boot the chosen one.
----@param _args string[]
+---@param _ string[]
 ---@param ctx table  { provider, root, bufnr }
 ---@return nil
-function M.pick_emulator(_args, ctx)
+function M.pick_emulator(_, ctx)
     local root = ctx.root
     query_list(root, "emulator.getEmulators", function(emulators)
         if #emulators == 0 then
