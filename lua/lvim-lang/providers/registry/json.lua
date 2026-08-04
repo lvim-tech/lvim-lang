@@ -26,22 +26,75 @@ return {
     ft = {
         json = {
             formatters = {
-                ["prettier"] = { mason = "prettier" },
-                ["prettierd"] = { mason = "prettierd" },
-                ["biome"] = { mason = "biome" },
-                ["fixjson"] = { mason = "fixjson" },
-                ["jq"] = { mason = "jq" },
+                ["prettier"] = {
+                    mason = "prettier",
+                    efm = { formatCommand = "prettier --stdin-filepath ${INPUT}", formatStdin = true },
+                },
+                ["prettierd"] = {
+                    mason = "prettierd",
+                    efm = { formatCommand = "prettierd ${INPUT}", formatStdin = true },
+                },
+                ["biome"] = {
+                    mason = "biome",
+                    efm = { formatCommand = "biome format --stdin-file-path=${INPUT}", formatStdin = true },
+                },
+                ["fixjson"] = { mason = "fixjson", efm = { formatCommand = "fixjson", formatStdin = true } },
+                ["jq"] = { mason = "jq", efm = { formatCommand = "jq .", formatStdin = true } },
             },
-            linters = { ["jsonlint"] = { mason = "jsonlint" }, ["biome"] = { mason = "biome" } },
+            linters = {
+                ["jsonlint"] = {
+                    mason = "jsonlint",
+                    efm = {
+                        lintCommand = "jsonlint --compact",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "line %l, col %c, %m", "%f: line %l, col %c, %m" },
+                    },
+                },
+                ["biome"] = {
+                    mason = "biome",
+                    efm = {
+                        lintCommand = "biome lint --reporter=github --stdin-file-path=${INPUT}",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = {
+                            "::%trror title=%*[^,],file=%f,line=%l,endLine=%*[0-9],col=%c,endColumn=%*[0-9]::%m",
+                            "::%tarning title=%*[^,],file=%f,line=%l,endLine=%*[0-9],col=%c,endColumn=%*[0-9]::%m",
+                        },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
         jsonc = {
             formatters = {
-                ["prettier"] = { mason = "prettier" },
-                ["prettierd"] = { mason = "prettierd" },
-                ["biome"] = { mason = "biome" },
+                ["prettier"] = {
+                    mason = "prettier",
+                    efm = { formatCommand = "prettier --stdin-filepath ${INPUT}", formatStdin = true },
+                },
+                ["prettierd"] = {
+                    mason = "prettierd",
+                    efm = { formatCommand = "prettierd ${INPUT}", formatStdin = true },
+                },
+                ["biome"] = {
+                    mason = "biome",
+                    efm = { formatCommand = "biome format --stdin-file-path=${INPUT}", formatStdin = true },
+                },
             },
-            linters = { ["biome"] = { mason = "biome" } },
+            linters = {
+                ["biome"] = {
+                    mason = "biome",
+                    efm = {
+                        lintCommand = "biome lint --reporter=github --stdin-file-path=${INPUT}",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = {
+                            "::%trror title=%*[^,],file=%f,line=%l,endLine=%*[0-9],col=%c,endColumn=%*[0-9]::%m",
+                            "::%tarning title=%*[^,],file=%f,line=%l,endLine=%*[0-9],col=%c,endColumn=%*[0-9]::%m",
+                        },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
     },

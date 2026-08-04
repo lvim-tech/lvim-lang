@@ -23,9 +23,23 @@ return {
         ["solidity"] = {
             formatters = {
                 ["forge-fmt"] = { efm = { formatCommand = "forge fmt --raw -", formatStdin = true } },
-                ["prettier"] = { mason = "prettier" },
+                ["prettier"] = {
+                    mason = "prettier",
+                    efm = { formatCommand = "prettier --stdin-filepath ${INPUT}", formatStdin = true },
+                },
             },
-            linters = { ["solhint"] = { mason = "solhint" } },
+            linters = {
+                ["solhint"] = {
+                    mason = "solhint",
+                    efm = {
+                        lintCommand = "solhint --formatter unix ${INPUT}",
+                        lintStdin = false,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c: %m" },
+                        rootMarkers = { ".solhint.json" },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
     },

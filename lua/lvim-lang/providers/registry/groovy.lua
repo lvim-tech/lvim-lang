@@ -38,6 +38,7 @@ return {
                     efm = {
                         lintCommand = "npm-groovy-lint --failon none ${INPUT}",
                         lintStdin = false,
+                        lintIgnoreExitCode = true,
                         lintFormats = { "%f:%l:%c: %m" },
                     },
                 },

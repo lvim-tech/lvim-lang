@@ -15,13 +15,43 @@ return {
     },
     ft = {
         ["bzl"] = {
-            formatters = { ["buildifier"] = { mason = "buildifier" } },
-            linters = { ["buildifier"] = { mason = "buildifier" } },
+            formatters = {
+                ["buildifier"] = {
+                    mason = "buildifier",
+                    efm = { formatCommand = "buildifier -path ${INPUT}", formatStdin = true },
+                },
+            },
+            linters = {
+                ["buildifier"] = {
+                    mason = "buildifier",
+                    efm = {
+                        lintCommand = "buildifier -lint=warn -mode=check -path ${INPUT}",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c: %m", "%f:%l: %m" },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
         ["starlark"] = {
-            formatters = { ["buildifier"] = { mason = "buildifier" } },
-            linters = { ["buildifier"] = { mason = "buildifier" } },
+            formatters = {
+                ["buildifier"] = {
+                    mason = "buildifier",
+                    efm = { formatCommand = "buildifier -path ${INPUT}", formatStdin = true },
+                },
+            },
+            linters = {
+                ["buildifier"] = {
+                    mason = "buildifier",
+                    efm = {
+                        lintCommand = "buildifier -lint=warn -mode=check -path ${INPUT}",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c: %m", "%f:%l: %m" },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
     },

@@ -12,13 +12,13 @@ return {
     lsp = { servers = { ["asm-lsp"] = { mason = "asm-lsp", filetypes = { "asm", "nasm" } } }, default = "asm-lsp" },
     ft = {
         ["asm"] = {
-            formatters = { ["asmfmt"] = { mason = "asmfmt" } },
+            formatters = { ["asmfmt"] = { mason = "asmfmt", efm = { formatCommand = "asmfmt", formatStdin = true } } },
             linters = {},
             debuggers = { codelldb = { mason = "codelldb" } },
             defaults = { formatter = false, linter = false, debugger = "codelldb" },
         },
         ["nasm"] = {
-            formatters = { ["asmfmt"] = { mason = "asmfmt" } },
+            formatters = { ["asmfmt"] = { mason = "asmfmt", efm = { formatCommand = "asmfmt", formatStdin = true } } },
             linters = {},
             debuggers = { codelldb = { mason = "codelldb" } },
             defaults = { formatter = false, linter = false, debugger = "codelldb" },

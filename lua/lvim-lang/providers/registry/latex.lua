@@ -10,7 +10,14 @@ return {
     lsp = { servers = { texlab = { mason = "texlab", filetypes = { "tex", "plaintex", "bib" } } }, default = "texlab" },
     ft = {
         ["tex"] = {
-            formatters = { ["latexindent"] = { mason = "latexindent" } },
+            -- latexindent's -g /dev/null sinks the indent.log it writes on every run, so stdin
+            -- formatting stays side-effect free.
+            formatters = {
+                ["latexindent"] = {
+                    mason = "latexindent",
+                    efm = { formatCommand = "latexindent -g /dev/null", formatStdin = true },
+                },
+            },
             -- Prose / grammar checking for LaTeX goes through the normal LINTER lifecycle — there is
             -- no TeX-specific plumbing for it anywhere else in the ecosystem. Both tools read a .tex
             -- file directly (vale has a LaTeX parser; proselint reads it as prose) and both are
@@ -23,6 +30,7 @@ return {
                     efm = {
                         lintCommand = "vale --output=line ${INPUT}",
                         lintStdin = false,
+                        lintIgnoreExitCode = true,
                         lintFormats = { "%f:%l:%c:%m" },
                         rootMarkers = { ".vale.ini", "_vale.ini" },
                     },
@@ -32,6 +40,7 @@ return {
                     efm = {
                         lintCommand = "proselint ${INPUT}",
                         lintStdin = false,
+                        lintIgnoreExitCode = true,
                         lintFormats = { "%f:%l:%c: %m" },
                     },
                 },
@@ -39,7 +48,14 @@ return {
             defaults = { formatter = false, linter = false },
         },
         ["bib"] = {
-            formatters = { ["latexindent"] = { mason = "latexindent" } },
+            -- latexindent's -g /dev/null sinks the indent.log it writes on every run, so stdin
+            -- formatting stays side-effect free.
+            formatters = {
+                ["latexindent"] = {
+                    mason = "latexindent",
+                    efm = { formatCommand = "latexindent -g /dev/null", formatStdin = true },
+                },
+            },
             linters = {},
             defaults = { formatter = false, linter = false },
         },

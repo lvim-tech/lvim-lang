@@ -10,8 +10,20 @@ return {
     lsp = { servers = { twiggy = { cmd = { "twiggy" }, filetypes = { "twig" } } }, default = "twiggy" },
     ft = {
         ["twig"] = {
-            formatters = { ["djlint"] = { mason = "djlint" } },
-            linters = { ["djlint"] = { mason = "djlint" } },
+            formatters = {
+                ["djlint"] = { mason = "djlint", efm = { formatCommand = "djlint --reformat -", formatStdin = true } },
+            },
+            linters = {
+                ["djlint"] = {
+                    mason = "djlint",
+                    efm = {
+                        lintCommand = "djlint --lint -",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%t%n %l:%c %m" },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
     },

@@ -11,11 +11,24 @@ return {
     ft = {
         ["nix"] = {
             formatters = {
-                ["nixpkgs-fmt"] = { mason = "nixpkgs-fmt" },
-                ["alejandra"] = { mason = "alejandra" },
-                ["nixfmt"] = { mason = "nixfmt" },
+                ["nixpkgs-fmt"] = { mason = "nixpkgs-fmt", efm = { formatCommand = "nixpkgs-fmt", formatStdin = true } },
+                ["alejandra"] = {
+                    mason = "alejandra",
+                    efm = { formatCommand = "alejandra --quiet -", formatStdin = true },
+                },
+                ["nixfmt"] = { mason = "nixfmt", efm = { formatCommand = "nixfmt", formatStdin = true } },
             },
-            linters = { ["statix"] = { mason = "statix" } },
+            linters = {
+                ["statix"] = {
+                    mason = "statix",
+                    efm = {
+                        lintCommand = "statix check --stdin --format=errfmt",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f>%l:%c:%t:%n:%m" },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
     },

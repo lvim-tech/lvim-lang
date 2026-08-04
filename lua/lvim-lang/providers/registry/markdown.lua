@@ -50,13 +50,71 @@ return {
                 },
             },
             linters = {
-                ["markdownlint"] = { mason = "markdownlint" },
-                ["markdownlint-cli2"] = { mason = "markdownlint-cli2" },
-                ["vale"] = { mason = "vale" },
-                ["proselint"] = { mason = "proselint" },
-                ["write-good"] = { mason = "write-good" },
-                ["alex"] = { mason = "alex" },
-                ["textlint"] = { mason = "textlint" },
+                ["markdownlint"] = {
+                    mason = "markdownlint",
+                    efm = {
+                        lintCommand = "markdownlint --stdin",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c %m", "%f:%l %m" },
+                    },
+                },
+                ["markdownlint-cli2"] = {
+                    mason = "markdownlint-cli2",
+                    efm = {
+                        lintCommand = "markdownlint-cli2 ${INPUT}",
+                        lintStdin = false,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c %m", "%f:%l %m" },
+                    },
+                },
+                ["vale"] = {
+                    mason = "vale",
+                    efm = {
+                        lintCommand = "vale --output=line ${INPUT}",
+                        lintStdin = false,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c:%m" },
+                        rootMarkers = { ".vale.ini", "_vale.ini" },
+                    },
+                },
+                ["proselint"] = {
+                    mason = "proselint",
+                    efm = {
+                        lintCommand = "proselint ${INPUT}",
+                        lintStdin = false,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c: %m" },
+                    },
+                },
+                ["write-good"] = {
+                    mason = "write-good",
+                    efm = {
+                        lintCommand = "write-good --parse ${INPUT}",
+                        lintStdin = false,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c:%m" },
+                    },
+                },
+                ["alex"] = {
+                    mason = "alex",
+                    efm = {
+                        lintCommand = "alex --quiet --stdin",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%*[ ]%l:%c-%*[0-9]:%*[0-9]%*[ ]%tarning%*[ ]%m" },
+                    },
+                },
+                ["textlint"] = {
+                    mason = "textlint",
+                    efm = {
+                        lintCommand = "textlint --no-color --format unix --stdin --stdin-filename ${INPUT}",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c: %m" },
+                        rootMarkers = { ".textlintrc", ".textlintrc.json" },
+                    },
+                },
             },
             defaults = { formatter = { "prettier", "cbfmt" }, linter = false },
         },

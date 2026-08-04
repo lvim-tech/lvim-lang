@@ -21,9 +21,18 @@ return {
     ft = {
         graphql = {
             formatters = {
-                ["prettier"] = { mason = "prettier" },
-                ["prettierd"] = { mason = "prettierd" },
-                ["biome"] = { mason = "biome" },
+                ["prettier"] = {
+                    mason = "prettier",
+                    efm = { formatCommand = "prettier --stdin-filepath ${INPUT}", formatStdin = true },
+                },
+                ["prettierd"] = {
+                    mason = "prettierd",
+                    efm = { formatCommand = "prettierd ${INPUT}", formatStdin = true },
+                },
+                ["biome"] = {
+                    mason = "biome",
+                    efm = { formatCommand = "biome format --stdin-file-path=${INPUT}", formatStdin = true },
+                },
             },
             linters = {},
             defaults = { formatter = false, linter = false },

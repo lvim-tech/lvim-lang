@@ -13,7 +13,14 @@ return {
     },
     ft = {
         xml = {
-            formatters = { ["xmlformatter"] = { mason = "xmlformatter" }, ["xmllint"] = { mason = "xmllint" } },
+            formatters = {
+                ["xmlformatter"] = {
+                    mason = "xmlformatter",
+                    bin = "xmlformat",
+                    efm = { formatCommand = "xmlformat -", formatStdin = true },
+                },
+                ["xmllint"] = { mason = "xmllint", efm = { formatCommand = "xmllint --format -", formatStdin = true } },
+            },
             linters = {},
             defaults = { formatter = false, linter = false },
         },

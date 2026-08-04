@@ -21,7 +21,21 @@ return {
     ft = {
         ["dockerfile"] = {
             formatters = {},
-            linters = { ["hadolint"] = { mason = "hadolint" } },
+            linters = {
+                ["hadolint"] = {
+                    mason = "hadolint",
+                    efm = {
+                        lintCommand = "hadolint --no-color -",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = {
+                            "%f:%l %*[A-Z0-9] %trror: %m",
+                            "%f:%l %*[A-Z0-9] %tarning: %m",
+                            "%f:%l %*[A-Z0-9] %tnfo: %m",
+                        },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
     },

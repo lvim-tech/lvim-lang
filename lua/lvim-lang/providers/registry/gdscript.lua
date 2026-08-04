@@ -10,8 +10,25 @@ return {
     lsp = { servers = { gdscript = { filetypes = { "gdscript" } } }, default = "gdscript" },
     ft = {
         ["gdscript"] = {
-            formatters = { ["gdformat"] = { mason = "gdtoolkit", bin = "gdformat" } },
-            linters = { ["gdlint"] = { mason = "gdtoolkit", bin = "gdlint" } },
+            formatters = {
+                ["gdformat"] = {
+                    mason = "gdtoolkit",
+                    bin = "gdformat",
+                    efm = { formatCommand = "gdformat -", formatStdin = true },
+                },
+            },
+            linters = {
+                ["gdlint"] = {
+                    mason = "gdtoolkit",
+                    bin = "gdlint",
+                    efm = {
+                        lintCommand = "gdlint ${INPUT}",
+                        lintStdin = false,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l: %trror: %m" },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
     },

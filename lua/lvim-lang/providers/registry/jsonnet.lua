@@ -15,12 +15,16 @@ return {
     },
     ft = {
         ["jsonnet"] = {
-            formatters = { ["jsonnetfmt"] = { mason = "jsonnetfmt" } },
+            formatters = {
+                ["jsonnetfmt"] = { mason = "jsonnetfmt", efm = { formatCommand = "jsonnetfmt -", formatStdin = true } },
+            },
             linters = {},
             defaults = { formatter = false, linter = false },
         },
         ["libsonnet"] = {
-            formatters = { ["jsonnetfmt"] = { mason = "jsonnetfmt" } },
+            formatters = {
+                ["jsonnetfmt"] = { mason = "jsonnetfmt", efm = { formatCommand = "jsonnetfmt -", formatStdin = true } },
+            },
             linters = {},
             defaults = { formatter = false, linter = false },
         },

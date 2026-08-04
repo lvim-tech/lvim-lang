@@ -42,11 +42,45 @@ return {
     ft = {
         ["astro"] = {
             formatters = {
-                ["prettier"] = { mason = "prettier" },
-                ["prettierd"] = { mason = "prettierd" },
-                ["rustywind"] = { mason = "rustywind" },
+                ["prettier"] = {
+                    mason = "prettier",
+                    efm = { formatCommand = "prettier --stdin-filepath ${INPUT}", formatStdin = true },
+                },
+                ["prettierd"] = {
+                    mason = "prettierd",
+                    efm = { formatCommand = "prettierd ${INPUT}", formatStdin = true },
+                },
+                ["rustywind"] = {
+                    mason = "rustywind",
+                    efm = { formatCommand = "rustywind --stdin", formatStdin = true },
+                },
             },
-            linters = { ["eslint_d"] = { mason = "eslint_d" } },
+            linters = {
+                -- stylish is the one machine-parseable formatter ESLint keeps in core across
+                -- versions (unix/compact left core in v9). The %P file-header scope and both
+                -- severity rows are probe-verified against efm 0.0.57.
+                ["eslint_d"] = {
+                    mason = "eslint_d",
+                    efm = {
+                        lintCommand = "eslint_d --no-color --format stylish --stdin --stdin-filename ${INPUT}",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = {
+                            "%-P%f",
+                            "%*[ ]%l:%c%*[ ]%trror%*[ ]%m",
+                            "%*[ ]%l:%c%*[ ]%tarning%*[ ]%m",
+                            "%-G%.%#",
+                        },
+                        rootMarkers = {
+                            "eslint.config.js",
+                            "eslint.config.mjs",
+                            ".eslintrc.js",
+                            ".eslintrc.json",
+                            "package.json",
+                        },
+                    },
+                },
+            },
             -- astro apps run in the browser / node, so they debug through js-debug (pwa-chrome) against
             -- the running dev server — firefox-debug-adapter is the Firefox alternative.
             debuggers = {

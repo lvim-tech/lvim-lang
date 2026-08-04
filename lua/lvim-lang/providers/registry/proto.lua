@@ -13,8 +13,19 @@ return {
     },
     ft = {
         ["proto"] = {
-            formatters = { ["buf"] = { mason = "buf" } },
-            linters = { ["buf"] = { mason = "buf" } },
+            formatters = { ["buf"] = { mason = "buf", efm = { formatCommand = "buf format -", formatStdin = true } } },
+            linters = {
+                ["buf"] = {
+                    mason = "buf",
+                    efm = {
+                        lintCommand = "buf lint ${INPUT}",
+                        lintStdin = false,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c:%m" },
+                        rootMarkers = { "buf.yaml", "buf.yml" },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
     },

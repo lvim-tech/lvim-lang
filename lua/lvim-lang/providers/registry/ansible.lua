@@ -20,12 +20,32 @@ return {
     ft = {
         ["yaml.ansible"] = {
             formatters = {},
-            linters = { ["ansible-lint"] = { mason = "ansible-lint" } },
+            linters = {
+                ["ansible-lint"] = {
+                    mason = "ansible-lint",
+                    efm = {
+                        lintCommand = "ansible-lint --parseable --nocolor ${INPUT}",
+                        lintStdin = false,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l: %m" },
+                    },
+                },
+            },
             defaults = { linter = false },
         },
         ["ansible"] = {
             formatters = {},
-            linters = { ["ansible-lint"] = { mason = "ansible-lint" } },
+            linters = {
+                ["ansible-lint"] = {
+                    mason = "ansible-lint",
+                    efm = {
+                        lintCommand = "ansible-lint --parseable --nocolor ${INPUT}",
+                        lintStdin = false,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l: %m" },
+                    },
+                },
+            },
             defaults = { linter = false },
         },
     },

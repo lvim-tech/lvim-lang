@@ -12,7 +12,13 @@ return {
     lsp = { servers = { fortls = { mason = "fortls", filetypes = { "fortran" } } }, default = "fortls" },
     ft = {
         ["fortran"] = {
-            formatters = { ["fprettify"] = { mason = "fprettify" }, ["findent"] = { mason = "findent" } },
+            formatters = {
+                ["fprettify"] = {
+                    mason = "fprettify",
+                    efm = { formatCommand = "fprettify --silent", formatStdin = true },
+                },
+                ["findent"] = { mason = "findent", efm = { formatCommand = "findent", formatStdin = true } },
+            },
             linters = {},
             debuggers = { codelldb = { mason = "codelldb" } },
             defaults = { formatter = false, linter = false, debugger = "codelldb" },

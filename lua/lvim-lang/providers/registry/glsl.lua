@@ -18,22 +18,42 @@ return {
     },
     ft = {
         ["glsl"] = {
-            formatters = { ["clang-format"] = { mason = "clang-format" } },
+            formatters = {
+                ["clang-format"] = {
+                    mason = "clang-format",
+                    efm = { formatCommand = "clang-format --assume-filename=${INPUT}", formatStdin = true },
+                },
+            },
             linters = {},
             defaults = { formatter = false, linter = false },
         },
         ["vert"] = {
-            formatters = { ["clang-format"] = { mason = "clang-format" } },
+            formatters = {
+                ["clang-format"] = {
+                    mason = "clang-format",
+                    efm = { formatCommand = "clang-format --assume-filename=${INPUT}", formatStdin = true },
+                },
+            },
             linters = {},
             defaults = { formatter = false, linter = false },
         },
         ["frag"] = {
-            formatters = { ["clang-format"] = { mason = "clang-format" } },
+            formatters = {
+                ["clang-format"] = {
+                    mason = "clang-format",
+                    efm = { formatCommand = "clang-format --assume-filename=${INPUT}", formatStdin = true },
+                },
+            },
             linters = {},
             defaults = { formatter = false, linter = false },
         },
         ["comp"] = {
-            formatters = { ["clang-format"] = { mason = "clang-format" } },
+            formatters = {
+                ["clang-format"] = {
+                    mason = "clang-format",
+                    efm = { formatCommand = "clang-format --assume-filename=${INPUT}", formatStdin = true },
+                },
+            },
             linters = {},
             defaults = { formatter = false, linter = false },
         },

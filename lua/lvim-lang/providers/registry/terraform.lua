@@ -21,7 +21,22 @@ return {
         ["terraform"] = {
             formatters = { ["terraform-fmt"] = { efm = { formatCommand = "terraform fmt -", formatStdin = true } } },
             linters = {
-                ["tflint"] = { mason = "tflint" },
+                -- tflint lints the ROOT module it runs in (the efm root): files of nested
+                -- modules produce no diagnostics from the root run.
+                ["tflint"] = {
+                    mason = "tflint",
+                    efm = {
+                        lintCommand = "tflint --no-color --format=compact",
+                        lintStdin = false,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c: %trror - %m", "%f:%l:%c: %tarning - %m", "%f:%l:%c: %totice - %m" },
+                        rootMarkers = { ".tflint.hcl" },
+                    },
+                },
+                -- tfsec and trivy are DIRECTORY-level security scanners, not per-line linters: their
+                -- output (finding blocks / tables) has no stable line-addressed format for efm to
+                -- parse, so they stay install-only here. Running them belongs to a build/validate
+                -- action, not the buffer-lint lifecycle.
                 ["tfsec"] = { mason = "tfsec" },
                 ["trivy"] = { mason = "trivy" },
             },

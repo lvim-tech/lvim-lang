@@ -13,8 +13,20 @@ return {
     },
     ft = {
         toml = {
-            formatters = { ["taplo"] = { mason = "taplo" } },
-            linters = { ["taplo"] = { mason = "taplo" } },
+            formatters = {
+                ["taplo"] = { mason = "taplo", efm = { formatCommand = "taplo format -", formatStdin = true } },
+            },
+            linters = {
+                ["taplo"] = {
+                    mason = "taplo",
+                    efm = {
+                        lintCommand = "taplo lint -",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%E%trror: %m", "%W%tarning: %m", "%Z%*[ ]┌─ %f:%l:%c" },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
     },

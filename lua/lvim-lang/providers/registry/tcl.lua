@@ -12,8 +12,24 @@ return {
     lsp = { servers = { ["tclsp"] = { mason = "tclint", bin = "tclsp", filetypes = { "tcl" } } }, default = "tclsp" },
     ft = {
         ["tcl"] = {
-            formatters = { ["tclfmt"] = { mason = "tclint", bin = "tclfmt" } },
-            linters = { ["tclint"] = { mason = "tclint" } },
+            formatters = {
+                ["tclfmt"] = {
+                    mason = "tclint",
+                    bin = "tclfmt",
+                    efm = { formatCommand = "tclfmt -", formatStdin = true },
+                },
+            },
+            linters = {
+                ["tclint"] = {
+                    mason = "tclint",
+                    efm = {
+                        lintCommand = "tclint ${INPUT}",
+                        lintStdin = false,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c: %m" },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
     },

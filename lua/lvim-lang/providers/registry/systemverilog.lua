@@ -19,13 +19,47 @@ return {
     },
     ft = {
         ["verilog"] = {
-            formatters = { ["verible"] = { mason = "verible", bin = "verible-verilog-format" } },
-            linters = { ["verible-verilog-lint"] = { mason = "verible", bin = "verible-verilog-lint" } },
+            formatters = {
+                ["verible"] = {
+                    mason = "verible",
+                    bin = "verible-verilog-format",
+                    efm = { formatCommand = "verible-verilog-format -", formatStdin = true },
+                },
+            },
+            linters = {
+                ["verible-verilog-lint"] = {
+                    mason = "verible",
+                    bin = "verible-verilog-lint",
+                    efm = {
+                        lintCommand = "verible-verilog-lint ${INPUT}",
+                        lintStdin = false,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c: %m", "%f:%l:%c-%*[0-9]: %m" },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
         ["systemverilog"] = {
-            formatters = { ["verible"] = { mason = "verible", bin = "verible-verilog-format" } },
-            linters = { ["verible-verilog-lint"] = { mason = "verible", bin = "verible-verilog-lint" } },
+            formatters = {
+                ["verible"] = {
+                    mason = "verible",
+                    bin = "verible-verilog-format",
+                    efm = { formatCommand = "verible-verilog-format -", formatStdin = true },
+                },
+            },
+            linters = {
+                ["verible-verilog-lint"] = {
+                    mason = "verible",
+                    bin = "verible-verilog-lint",
+                    efm = {
+                        lintCommand = "verible-verilog-lint ${INPUT}",
+                        lintStdin = false,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c: %m", "%f:%l:%c-%*[0-9]: %m" },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
     },

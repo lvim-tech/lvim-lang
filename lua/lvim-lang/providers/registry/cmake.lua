@@ -22,10 +22,25 @@ return {
     ft = {
         ["cmake"] = {
             formatters = {
-                ["gersemi"] = { mason = "gersemi" },
-                ["cmake-format"] = { mason = "cmakelang", bin = "cmake-format" },
+                ["gersemi"] = { mason = "gersemi", efm = { formatCommand = "gersemi -", formatStdin = true } },
+                ["cmake-format"] = {
+                    mason = "cmakelang",
+                    bin = "cmake-format",
+                    efm = { formatCommand = "cmake-format -", formatStdin = true },
+                },
             },
-            linters = { ["cmake-lint"] = { mason = "cmakelang", bin = "cmake-lint" } },
+            linters = {
+                ["cmake-lint"] = {
+                    mason = "cmakelang",
+                    bin = "cmake-lint",
+                    efm = {
+                        lintCommand = "cmake-lint ${INPUT}",
+                        lintStdin = false,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l,%c: %m", "%f:%l: %m" },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
     },

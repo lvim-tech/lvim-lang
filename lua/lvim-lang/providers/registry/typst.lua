@@ -10,7 +10,9 @@ return {
     lsp = { servers = { tinymist = { mason = "tinymist", filetypes = { "typst" } } }, default = "tinymist" },
     ft = {
         ["typst"] = {
-            formatters = { ["typstyle"] = { mason = "typstyle" } },
+            formatters = {
+                ["typstyle"] = { mason = "typstyle", efm = { formatCommand = "typstyle", formatStdin = true } },
+            },
             linters = {},
             defaults = { formatter = false, linter = false },
         },

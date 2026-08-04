@@ -24,30 +24,114 @@ return {
     ft = {
         css = {
             formatters = {
-                ["prettier"] = { mason = "prettier" },
-                ["prettierd"] = { mason = "prettierd" },
-                ["biome"] = { mason = "biome" },
-                ["stylelint"] = { mason = "stylelint" },
+                ["prettier"] = {
+                    mason = "prettier",
+                    efm = { formatCommand = "prettier --stdin-filepath ${INPUT}", formatStdin = true },
+                },
+                ["prettierd"] = {
+                    mason = "prettierd",
+                    efm = { formatCommand = "prettierd ${INPUT}", formatStdin = true },
+                },
+                ["biome"] = {
+                    mason = "biome",
+                    efm = { formatCommand = "biome format --stdin-file-path=${INPUT}", formatStdin = true },
+                },
+                -- stylelint exits 2 when unfixable problems remain, and efm discards formatter
+                -- output on non-zero exit — so --fix silently no-ops on a file that still has an
+                -- error. Inherent to stylelint-over-efm; pick prettier when that bites.
+                ["stylelint"] = {
+                    mason = "stylelint",
+                    efm = { formatCommand = "stylelint --stdin --stdin-filename ${INPUT} --fix", formatStdin = true },
+                },
             },
-            linters = { ["stylelint"] = { mason = "stylelint" }, ["biome"] = { mason = "biome" } },
+            linters = {
+                ["stylelint"] = {
+                    mason = "stylelint",
+                    efm = {
+                        lintCommand = "stylelint --no-color --formatter unix --stdin --stdin-filename ${INPUT}",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c: %m" },
+                        rootMarkers = { ".stylelintrc", ".stylelintrc.json", "stylelint.config.js" },
+                    },
+                },
+                ["biome"] = {
+                    mason = "biome",
+                    efm = {
+                        lintCommand = "biome lint --reporter=github --stdin-file-path=${INPUT}",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = {
+                            "::%trror title=%*[^,],file=%f,line=%l,endLine=%*[0-9],col=%c,endColumn=%*[0-9]::%m",
+                            "::%tarning title=%*[^,],file=%f,line=%l,endLine=%*[0-9],col=%c,endColumn=%*[0-9]::%m",
+                        },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
         scss = {
             formatters = {
-                ["prettier"] = { mason = "prettier" },
-                ["prettierd"] = { mason = "prettierd" },
-                ["stylelint"] = { mason = "stylelint" },
+                ["prettier"] = {
+                    mason = "prettier",
+                    efm = { formatCommand = "prettier --stdin-filepath ${INPUT}", formatStdin = true },
+                },
+                ["prettierd"] = {
+                    mason = "prettierd",
+                    efm = { formatCommand = "prettierd ${INPUT}", formatStdin = true },
+                },
+                -- stylelint exits 2 when unfixable problems remain, and efm discards formatter
+                -- output on non-zero exit — so --fix silently no-ops on a file that still has an
+                -- error. Inherent to stylelint-over-efm; pick prettier when that bites.
+                ["stylelint"] = {
+                    mason = "stylelint",
+                    efm = { formatCommand = "stylelint --stdin --stdin-filename ${INPUT} --fix", formatStdin = true },
+                },
             },
-            linters = { ["stylelint"] = { mason = "stylelint" } },
+            linters = {
+                ["stylelint"] = {
+                    mason = "stylelint",
+                    efm = {
+                        lintCommand = "stylelint --no-color --formatter unix --stdin --stdin-filename ${INPUT}",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c: %m" },
+                        rootMarkers = { ".stylelintrc", ".stylelintrc.json", "stylelint.config.js" },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
         less = {
             formatters = {
-                ["prettier"] = { mason = "prettier" },
-                ["prettierd"] = { mason = "prettierd" },
-                ["stylelint"] = { mason = "stylelint" },
+                ["prettier"] = {
+                    mason = "prettier",
+                    efm = { formatCommand = "prettier --stdin-filepath ${INPUT}", formatStdin = true },
+                },
+                ["prettierd"] = {
+                    mason = "prettierd",
+                    efm = { formatCommand = "prettierd ${INPUT}", formatStdin = true },
+                },
+                -- stylelint exits 2 when unfixable problems remain, and efm discards formatter
+                -- output on non-zero exit — so --fix silently no-ops on a file that still has an
+                -- error. Inherent to stylelint-over-efm; pick prettier when that bites.
+                ["stylelint"] = {
+                    mason = "stylelint",
+                    efm = { formatCommand = "stylelint --stdin --stdin-filename ${INPUT} --fix", formatStdin = true },
+                },
             },
-            linters = { ["stylelint"] = { mason = "stylelint" } },
+            linters = {
+                ["stylelint"] = {
+                    mason = "stylelint",
+                    efm = {
+                        lintCommand = "stylelint --no-color --formatter unix --stdin --stdin-filename ${INPUT}",
+                        lintStdin = true,
+                        lintIgnoreExitCode = true,
+                        lintFormats = { "%f:%l:%c: %m" },
+                        rootMarkers = { ".stylelintrc", ".stylelintrc.json", "stylelint.config.js" },
+                    },
+                },
+            },
             defaults = { formatter = false, linter = false },
         },
     },
