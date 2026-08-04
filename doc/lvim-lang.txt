@@ -309,7 +309,15 @@ Declarative Tier 3 providers (config / markup / data): HTML, CSS/SCSS/LESS, JSON
 YAML, TOML, Markdown, XML and GraphQL. These have no compile / test step, so each ships
 the LSP plus a rich per-filetype formatter / linter catalog (all Mason, opt-in), and
 lvim-build offers file-level VALIDATE actions (prettier --check, yamllint, markdownlint,
-taplo check, xmllint …) in place of build/test.
+taplo check, xmllint …) in place of build/test. Markdown formats BY DEFAULT with a
+chain — efm runs prettier (the prose) then cbfmt (the code inside the fences, driven
+by the `.cbfmt.toml` found upward from the file); a formatter selection anywhere in
+the catalog may be one key, a list (a chain, run in order), or `false`.
+
+Org is a FORMATTER-ONLY provider: no LSP exists for it, so it registers an empty
+server entry under its own name — the installer still offers cbfmt on the first
+.org buffer and efm formats the `#+begin_src` blocks without a language-server
+client ever starting.
 
 Declarative Tier 3 providers (infra / DevOps): Dockerfile, Terraform/HCL, Nix, SQL,
 Protocol Buffers, Helm and Ansible. LSP + catalog + a lvim-build VALIDATE action

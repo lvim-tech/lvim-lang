@@ -399,7 +399,7 @@ end
 ---@param data LvimLangSpecData
 ---@return nil
 function M.install_server_shims(data)
-    for key in pairs((data.lsp and data.lsp.servers) or {}) do
+    local function preload(key)
         M.owners[key] = data.name
         local mod = DIR_PREFIX .. "." .. key
         local rel = "lua/" .. mod:gsub("%.", "/") .. ".lua"
@@ -409,6 +409,15 @@ function M.install_server_shims(data)
                 return require("lvim-lang.servers._declarative").build(key)
             end
         end
+    end
+    for key in pairs((data.lsp and data.lsp.servers) or {}) do
+        preload(key)
+    end
+    -- A provider with NO server catalog (formatter-only, e.g. org) owns one shim under its own
+    -- name: core.lsp registers the matching `lsp = {}` entry, and the manager reads the efm chain
+    -- from this module. Without it there would be no server-config module to carry the chain.
+    if next((data.lsp and data.lsp.servers) or {}) == nil then
+        preload(data.name)
     end
 end
 
@@ -420,6 +429,11 @@ end
 function M.server_module(key)
     local name = M.owners[key]
     assert(name, "lvim-lang.declarative.server_module: no owning provider for server '" .. key .. "'")
+    -- The formatter-only key (key == provider name, present in no server catalog): the module is
+    -- ONLY the efm chain — no `lsp`, so the manager applies efm and starts no client, and no `dap`.
+    if not catalog.server_entry(name, key) then
+        return { efm = catalog.efm_groups(name) }
+    end
     local spec = require("lvim-lang.registry").get(name)
     local patterns = (spec and spec.root_patterns) or { ".git" }
     local popts_dap = (config.providers[name] or {}).dap

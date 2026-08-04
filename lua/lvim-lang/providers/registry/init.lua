@@ -97,6 +97,8 @@ local DATA = {
     "cairo",
     "lean",
     "coq",
+    -- Formatter-only providers (no LSP catalog — core.lsp registers the `lsp = {}` entry).
+    "org",
 }
 
 --- The declarative data-file names (for the validate harness / tooling).

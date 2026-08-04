@@ -136,6 +136,9 @@ function M.register(spec, defaults)
             for _, key in ipairs(require("lvim-lang.core.catalog").chosen_servers(spec.name)) do
                 lsp.unregister_language(key)
             end
+            -- A formatter-only provider registered under its own name (no server catalog) — drop
+            -- that synthetic entry the same way; a no-op when the name is no registered key.
+            lsp.unregister_language(spec.name)
         end
     end
     providers[spec.name] = spec

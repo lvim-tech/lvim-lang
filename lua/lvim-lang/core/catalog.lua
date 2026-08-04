@@ -54,20 +54,26 @@ function M.provider_filetypes(name)
     return (spec and spec.filetypes) or {}
 end
 
---- The chosen tool KEY for a (filetype, kind): the user's explicit `ft.<ft>.<kind>` pick (a key or
---- `false` = none), else the ft block's `defaults.<kind>`. Returns nil when none is selected.
+--- The chosen tool KEYS for a (filetype, kind): the user's explicit `ft.<ft>.<kind>` pick, else the
+--- ft block's `defaults.<kind>`. Either may be a single key, a LIST of keys, or `false` = none. A
+--- list is a CHAIN in that order — efm-langserver pipes each formatter's output into the next, which
+--- is how markdown runs prettier (prose) and then cbfmt (the code inside the fences) on one buffer.
+--- Always returns a list; empty when nothing is selected.
 ---@param name string
 ---@param ft string
 ---@param kind "formatter"|"linter"|"debugger"
----@return string|nil
-function M.chosen_tool(name, ft, kind)
+---@return string[]
+function M.chosen_tools(name, ft, kind)
     local ftblock = (popts(name).ft or {})[ft] or {}
     local sel = ftblock[kind]
     if sel == nil then
         sel = (ftblock.defaults or {})[kind]
     end
     if sel == false or sel == nil then
-        return nil
+        return {}
+    end
+    if type(sel) == "string" then
+        return { sel }
     end
     return sel
 end
@@ -112,8 +118,7 @@ function M.union_entry(name)
 
     for _, ft in ipairs(fts) do
         for kind, bucket in pairs({ formatter = "formatters", linter = "linters", debugger = "debuggers" }) do
-            local key = M.chosen_tool(name, ft, kind)
-            if key then
+            for _, key in ipairs(M.chosen_tools(name, ft, kind)) do
                 local te = tool_entry(name, ft, kind, key)
                 if te then
                     add_tool(u[bucket], seen[bucket], te.mason, te.bin)
@@ -148,7 +153,7 @@ end
 ---@param ft string
 ---@return boolean
 function M.has_formatter(name, ft)
-    return M.chosen_tool(name, ft, "formatter") ~= nil
+    return #M.chosen_tools(name, ft, "formatter") > 0
 end
 
 --- Build an LSP `on_attach` that COORDINATES formatting with efm: when an efm formatter is active
@@ -183,8 +188,7 @@ function M.efm_groups(name)
     for _, ft in ipairs(M.provider_filetypes(name)) do
         local tools = {}
         for _, kind in ipairs({ "formatter", "linter" }) do
-            local key = M.chosen_tool(name, ft, kind)
-            if key then
+            for _, key in ipairs(M.chosen_tools(name, ft, kind)) do
                 local te = tool_entry(name, ft, kind, key)
                 if te and te.efm then
                     tools[#tools + 1] = vim.tbl_extend("force", { server_name = key }, te.efm)

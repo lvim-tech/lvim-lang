@@ -18,7 +18,10 @@ opened, at which point that project's root is resolved and the provider is activ
 Each provider owns a language's full tooling — LSP server(s) + settings, a per-filetype catalog of
 formatters / linters / debuggers, tasks, dependencies, codegen, debugging and run configs. You pick
 the active tools (or none) and override any setting; the chosen tools auto-install through the
-unified `lvim-installer` popup when you open a file.
+unified `lvim-installer` popup when you open a file. A formatter selection may be a single key, a
+LIST — a chain efm runs in order, piping one formatter's output into the next (markdown's default:
+`prettier` for the prose, then `cbfmt` for the code inside the fences) — or `false`. A provider may
+also be formatter-only, with no LSP at all (org: cbfmt over efm, no client ever starts).
 
 | Provider | Filetypes | LSP | Docs |
 | --- | --- | --- | --- |
@@ -73,7 +76,8 @@ unified `lvim-installer` popup when you open a file.
 | JSON | `json`, `jsonc` | json-lsp | [docs/providers/json.md](docs/providers/json.md) |
 | YAML | `yaml` | yaml-language-server | [docs/providers/yaml.md](docs/providers/yaml.md) |
 | TOML | `toml` | taplo | [docs/providers/toml.md](docs/providers/toml.md) |
-| Markdown | `markdown` | marksman | [docs/providers/markdown.md](docs/providers/markdown.md) |
+| Markdown | `markdown`, `markdown.mdx`, `mdx` | marksman | [docs/providers/markdown.md](docs/providers/markdown.md) |
+| Org | `org` | — (formatter-only: cbfmt) | [docs/providers/org.md](docs/providers/org.md) |
 | XML | `xml`, `xsd`, `xsl`, `svg` | lemminx | [docs/providers/xml.md](docs/providers/xml.md) |
 | GraphQL | `graphql` | graphql-language-service-cli | [docs/providers/graphql.md](docs/providers/graphql.md) |
 | Dockerfile | `dockerfile` | dockerfile-language-server | [docs/providers/dockerfile.md](docs/providers/dockerfile.md) |

@@ -35,14 +35,30 @@ end
 ---@return nil
 function M.register_catalog(name)
     local chosen = catalog.chosen_servers(name)
-    if #chosen == 0 then
-        return
-    end
     local ok, lsp = pcall(require, "lvim-lsp")
     if not ok or type(lsp.register_language) ~= "function" then
         return
     end
     local union = catalog.union_entry(name)
+    -- A provider with NO LSP catalog at all (formatter-only, e.g. org: cbfmt and no server) still
+    -- registers ONE entry — under its own name, with an empty `lsp` list — so lvim-ls offers the
+    -- chosen tools through the installer and loads the generic server-config shim, whose `efm`
+    -- field carries the format/lint chain. The shim returns no `lsp` for such a key, so the
+    -- manager applies efm and never starts a client (that order is the manager's own contract).
+    if #chosen == 0 then
+        if #union.formatters == 0 and #union.linters == 0 and #union.tools == 0 then
+            return
+        end
+        lsp.register_language(name, {
+            filetypes = union.filetypes,
+            lsp = {},
+            formatters = union.formatters,
+            linters = union.linters,
+            debuggers = union.debuggers,
+            tools = union.tools,
+        }, DIR_PREFIX)
+        return
+    end
     for i, key in ipairs(chosen) do
         local se = catalog.server_entry(name, key) or {}
         local item = lsp_item(se)
