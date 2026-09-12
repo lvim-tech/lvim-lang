@@ -79,13 +79,15 @@ return {
             -- Point zls at the SAME zig the tasks resolve (a project-pinned toolchain), unless the user
             -- already set zig_exe_path explicitly. zls needs it to resolve std / build / format.
             local settings = vim.deepcopy(so.settings) or {}
-            settings.zls = settings.zls or {}
-            if settings.zls.zig_exe_path == nil then
+            if not (settings.zls and settings.zls.zig_exe_path ~= nil) then
                 local zig = toolchain.resolve("zig", "zig", root)
                 if zig then
+                    settings.zls = settings.zls or {}
                     settings.zls.zig_exe_path = zig
                 end
             end
+            -- (with no zig resolved and no user settings there is no `zls` table at all — an empty one
+            -- would encode as `"zls": []` and zls rejects it)
             -- Only send settings / init_options when non-empty: an empty Lua table encodes as a JSON
             -- ARRAY ([]), which servers reject.
             if next(settings) then
