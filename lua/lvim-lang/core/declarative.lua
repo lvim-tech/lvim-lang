@@ -341,7 +341,8 @@ function M.build(data)
         end
     end
 
-    -- Health: report each toolchain tool's resolution (+ version), then the provider's requirements.
+    -- Health: report each toolchain tool's resolution (+ version); the declared requirements are reported by
+    -- `lvim-lang.health`, once, for every provider.
     local function health(h)
         local root = vim.uv.cwd() or "."
         local keys = vim.tbl_keys(toolchain_spec.tools)
@@ -355,7 +356,9 @@ function M.build(data)
                 h.info(("%s not found — install via the mason registry (:LvimInstaller) or PATH"):format(tool))
             end
         end
-        requirements.health(name, root, h)
+        -- The declared requirements are NOT reported here: `lvim-lang.health` reports them for every
+        -- provider right after this hook runs, and reporting them from both places printed each
+        -- toolchain line twice under :checkhealth lvim-lang.
     end
 
     -- Statusline: the provider icon + the active run config (only when an icon is configured).
