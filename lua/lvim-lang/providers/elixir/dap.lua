@@ -46,9 +46,11 @@ local function adapter()
 end
 
 --- The static `dap` field for the Elixir server config (adapter + base configurations). The adapter is
---- registered under the `mix_task` type — the elixir-ls debugger's own request kind.
+--- registered under the `mix_task` type — the elixir-ls debugger's own request kind. The `mix test`
+--- configuration honours `providers.elixir.dap.test_require_files` (the same tuning debug-test uses).
 ---@return table
 function M.spec()
+    local require_files = (opts().dap and opts().dap.test_require_files) or TEST_REQUIRE_FILES
     return {
         adapters = { mix_task = adapter() },
         configurations = {
@@ -61,7 +63,7 @@ function M.spec()
                     taskArgs = { "--trace" },
                     startApps = true,
                     projectDir = "${workspaceFolder}",
-                    requireFiles = TEST_REQUIRE_FILES,
+                    requireFiles = require_files,
                 },
                 {
                     type = "mix_task",
