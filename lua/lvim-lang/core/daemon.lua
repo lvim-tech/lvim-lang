@@ -63,17 +63,32 @@ function M.start(opts)
     end
 
     -- Newline reassembly across chunks: data[1] continues the previous chunk's trailing partial;
-    -- each further element was preceded by a "\n" and so completes a line.
-    local partial = ""
+    -- each further element was preceded by a "\n" and so completes a line. Both streams keep their
+    -- own partial — stderr used to be handed over chunk by chunk, so one line split across two
+    -- reads arrived as two.
+    local stdout_partial, stderr_partial = "", ""
     ---@param data string[]
-    local function on_stream(_, data)
+    local function on_stdout(_, data)
         if not data then
             return
         end
-        partial = partial .. data[1]
+        stdout_partial = stdout_partial .. data[1]
         for i = 2, #data do
-            handle_line(partial)
-            partial = data[i]
+            handle_line(stdout_partial)
+            stdout_partial = data[i]
+        end
+    end
+    ---@param data string[]
+    local function on_stderr(_, data)
+        if not data then
+            return
+        end
+        stderr_partial = stderr_partial .. data[1]
+        for i = 2, #data do
+            if stderr_partial ~= "" and opts.on_line then
+                opts.on_line(stderr_partial)
+            end
+            stderr_partial = data[i]
         end
     end
 
@@ -81,18 +96,19 @@ function M.start(opts)
         cwd = opts.cwd,
         stdout_buffered = false,
         stderr_buffered = false,
-        on_stdout = on_stream,
-        on_stderr = function(_, data)
-            if not data or not opts.on_line then
-                return
-            end
-            for _, line in ipairs(data) do
-                if line ~= "" then
-                    opts.on_line(line)
-                end
-            end
-        end,
+        on_stdout = on_stdout,
+        on_stderr = on_stderr,
         on_exit = function(_, code)
+            -- A final line without a trailing newline (a crash message, the last response of a
+            -- process that died) would otherwise stay in the partial forever.
+            if stdout_partial ~= "" then
+                handle_line(stdout_partial)
+                stdout_partial = ""
+            end
+            if stderr_partial ~= "" and opts.on_line then
+                opts.on_line(stderr_partial)
+                stderr_partial = ""
+            end
             if opts.on_exit then
                 opts.on_exit(code)
             end
