@@ -50,14 +50,16 @@ function M.prompt_number(opts)
     return tonumber(M.prompt(opts)) or 0
 end
 
---- A file/program picker, defaulting under `dir`.
----@param dir string|nil
+--- A file/program picker, defaulting under `dir` (a directory, or a function resolving one when
+--- the picker runs).
+---@param dir string|fun(): string|nil
 ---@return fun(): string
 function M.pick_program(dir)
     return function()
+        local d = type(dir) == "function" and dir() or dir
         return M.prompt({
             title = "Path to executable",
-            default = dir and (dir .. "/") or "",
+            default = d and (d .. "/") or "",
             completion = "file",
         })
     end
@@ -72,32 +74,46 @@ function M.pick_pid()
 end
 
 --- Expand a compact DATA.dap into the lvim-ls server-config `dap` spec, resolved for `root`.
+--- `root` may be a FUNCTION: then every binary and the picker's default directory are resolved
+--- when a session launches, for the project being debugged — a server module that is required
+--- once (gdscript) would otherwise bake in the root of whichever buffer was current at that
+--- moment for every later project.
 ---@param provider string
 ---@param dap table
----@param root string
+---@param root string|fun(): string
 ---@return table
 function M.build(provider, dap, root)
+    local function root_now()
+        return type(root) == "function" and root() or root
+    end
     local adapters = {}
     for name, a in pairs(dap.adapters or {}) do
         if type(a) == "function" then
             adapters[name] = a -- an inline adapter (e.g. the nlua attach adapter) — used verbatim
         else
-            local cmd = bin(provider, a.tool or name, root)
+            local function cmd()
+                return bin(provider, a.tool or name, root_now())
+            end
             if a.kind == "server" then
                 adapters[name] = function(cb)
                     cb({
                         type = "server",
                         port = "${port}",
-                        executable = { command = cmd, args = a.args or { "--port", "${port}" } },
+                        executable = { command = cmd(), args = a.args or { "--port", "${port}" } },
                     })
                 end
             else
-                adapters[name] = { type = "executable", command = cmd, args = a.args or {} }
+                adapters[name] = function(cb)
+                    cb({ type = "executable", command = cmd(), args = a.args or {} })
+                end
             end
         end
     end
 
-    local default_dir = dap.bin_dir and vim.fs.joinpath(root, dap.bin_dir) or root
+    local function default_dir()
+        local r = root_now()
+        return dap.bin_dir and vim.fs.joinpath(r, dap.bin_dir) or r
+    end
     local configurations = {}
     for ft, cfgs in pairs(dap.configurations or {}) do
         configurations[ft] = {}

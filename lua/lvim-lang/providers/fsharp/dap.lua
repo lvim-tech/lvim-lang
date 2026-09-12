@@ -16,22 +16,27 @@ local TITLE = { title = "lvim-lang" }
 
 local M = {}
 
---- Resolve the netcoredbg binary: an explicit config path → the mason install → PATH.
+--- Resolve the netcoredbg binary against the PROJECT root: an explicit config path → the mason
+--- install → PATH. Called when a session launches (see `adapter`), never at spec() time — the spec
+--- is built once at attach with whatever the cwd was then.
 ---@return string
 local function netcoredbg_bin()
-    local root = vim.uv.cwd() or "."
+    local root = require("lvim-lang.providers.fsharp.tasks").root()
     local resolved = toolchain.resolve("fsharp", "netcoredbg", root)
     return resolved or "netcoredbg"
 end
 
---- The netcoredbg DAP adapter (VS Code protocol interpreter over stdio).
----@return table
+--- The netcoredbg DAP adapter (VS Code protocol interpreter over stdio), as the callback form
+--- lvim-dap resolves at launch so the binary follows the project being debugged.
+---@return fun(cb: fun(adapter: table))
 local function adapter()
-    return {
-        type = "executable",
-        command = netcoredbg_bin(),
-        args = { "--interpreter=vscode" },
-    }
+    return function(cb)
+        cb({
+            type = "executable",
+            command = netcoredbg_bin(),
+            args = { "--interpreter=vscode" },
+        })
+    end
 end
 
 --- The static `dap` field for the language server config (adapter + base configurations).

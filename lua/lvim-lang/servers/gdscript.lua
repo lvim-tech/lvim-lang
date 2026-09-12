@@ -30,7 +30,11 @@ end
 ---@return table
 function M.build()
     local popts_dap = (require("lvim-lang.config").providers.gdscript or {}).dap
-    local root = vim.fs.root(0, { "project.godot", ".git" }) or vim.uv.cwd() or "."
+    -- The root is resolved when a debug session launches (a lazy root), not when this module is
+    -- first required — that happened with the first GDScript buffer and stuck for every project.
+    local function root()
+        return vim.fs.root(0, { "project.godot", ".git" }) or vim.uv.cwd() or "."
+    end
     return {
         dap = popts_dap and require("lvim-lang.core.dap").build("gdscript", popts_dap, root) or nil,
         lsp = {
