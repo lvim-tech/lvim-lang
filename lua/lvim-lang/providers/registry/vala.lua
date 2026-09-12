@@ -49,11 +49,24 @@ return {
     },
     commands = {
         build = { cmd = { "ninja", "-C", "build" }, group = "Build", desc = "ninja -C build" },
+        -- "run" used to stop after `valac … -o /tmp/vala-out`: compile into a private temp binary
+        -- (no fixed shared path) and execute it.
         run = {
-            cmd = { "valac", "${file}", "-o", "/tmp/vala-out" },
+            cmd = function(ctx)
+                if ctx.file == "" then
+                    vim.notify("lvim-lang: no file in this buffer to run", vim.log.levels.WARN, { title = "lvim-lang" })
+                    return nil
+                end
+                local exe = vim.fn.tempname()
+                return {
+                    "sh",
+                    "-c",
+                    "valac " .. vim.fn.shellescape(ctx.file) .. " -o " .. vim.fn.shellescape(exe) .. " && " .. vim.fn.shellescape(exe),
+                }
+            end,
             tool = "valac",
-            group = "Build",
-            desc = "valac <file>",
+            group = "Run",
+            desc = "valac <file> -o <tmp> && <tmp>",
         },
     },
     icons = { statusline = "" }, -- Vala

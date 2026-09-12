@@ -41,7 +41,21 @@ return {
     },
     commands = {
         build = { cmd = { "fpc", "${file}" }, tool = "fpc", group = "Build", desc = "fpc <file>" },
-        run = { cmd = { "fpc", "${file}" }, tool = "fpc", group = "Build", desc = "fpc <file>" },
+        -- "run" used to be a second `fpc <file>`: it compiled and never ran anything. Compile, then
+        -- execute the binary fpc writes next to the source (the program name, no extension).
+        run = {
+            cmd = function(ctx)
+                if ctx.file == "" then
+                    vim.notify("lvim-lang: no file in this buffer to run", vim.log.levels.WARN, { title = "lvim-lang" })
+                    return nil
+                end
+                local exe = vim.fn.fnamemodify(ctx.file, ":r")
+                return { "sh", "-c", "fpc " .. vim.fn.shellescape(ctx.file) .. " && " .. vim.fn.shellescape(exe) }
+            end,
+            tool = "fpc",
+            group = "Run",
+            desc = "fpc <file> && ./<program>",
+        },
     },
     icons = { statusline = "󰅩" }, -- Pascal
 }

@@ -20,11 +20,21 @@ return {
     ft = { lisp = { defaults = {} } },
     commands = {
         run = { cmd = { "sbcl", "--script", "${file}" }, tool = "sbcl", group = "Run", desc = "sbcl --script <file>" },
+        -- The system under test is the project's `<name>.asd` at the root, not a hard-coded :app.
         test = {
-            cmd = { "sbcl", "--eval", "(asdf:test-system :app)", "--quit" },
+            cmd = function(ctx)
+                local asds = vim.fn.glob(ctx.root .. "/*.asd", true, true)
+                if #asds == 0 then
+                    vim.notify("lvim-lang: no *.asd system definition at " .. ctx.root, vim.log.levels.WARN, { title = "lvim-lang" })
+                    return nil
+                end
+                table.sort(asds)
+                local system = vim.fn.fnamemodify(asds[1], ":t:r")
+                return { "sbcl", "--eval", "(asdf:test-system :" .. system .. ")", "--quit" }
+            end,
             tool = "sbcl",
             group = "Test",
-            desc = "asdf:test-system",
+            desc = "asdf:test-system <root>/*.asd",
         },
     },
     icons = { statusline = "" }, -- Lisp
