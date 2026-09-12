@@ -177,9 +177,12 @@ return {
                     local pkgdir = vim.fs.normalize(pkg.bin_dir() .. "/../packages/local-lua-debugger-vscode")
                     js = vim.fs.joinpath(pkgdir, js)
                 end
+                -- The resolved node when PATH has one (a version-managed install stays pinned even if
+                -- the adapter runs with a different environment), else the bare name for the spawn error.
+                local node = vim.fn.exepath("node")
                 cb({
                     type = "executable",
-                    command = vim.fn.exepath("node") ~= "" and "node" or "node",
+                    command = node ~= "" and node or "node",
                     args = { js },
                     enrich_config = function(config, on_config)
                         if not config.extensionPath then
