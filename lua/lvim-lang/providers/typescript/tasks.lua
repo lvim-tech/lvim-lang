@@ -84,6 +84,10 @@ function M.run(args, ctx)
         run(root, cmd, "run " .. rc.script, "Run", rc.env)
         return
     end
+    -- The file comes from the run config, else the FIRST command-line arg, else the buffer. When it
+    -- was taken from the command line it must not be appended again as a program arg — that ran
+    -- `node file.js file.js …`.
+    local from_args = not (rc and rc.file) and args[1] ~= nil
     local file = (rc and rc.file) or args[1] or current_file()
     if not file then
         vim.notify("lvim-lang: no file to run (open a buffer or add a run config)", vim.log.levels.WARN, TITLE)
@@ -94,7 +98,7 @@ function M.run(args, ctx)
         return
     end
     vim.list_extend(cmd, rc and rc.args or {})
-    vim.list_extend(cmd, (rc or args[1]) and args or { unpack(args, 2) })
+    vim.list_extend(cmd, from_args and { unpack(args, 2) } or args)
     run(root, cmd, "run " .. vim.fs.basename(file), "Run", rc and rc.env)
 end
 
