@@ -3,8 +3,6 @@
 -- plugin's panel, history, matcher→quickfix and dock for free. (Long-lived structured daemon
 -- sessions — flutter run --machine — are the ONE exception and go through core.daemon.)
 --
--- Implemented in milestone M4. The stub keeps registry activation safe before then.
---
 ---@module "lvim-lang.core.runner"
 
 local M = {}

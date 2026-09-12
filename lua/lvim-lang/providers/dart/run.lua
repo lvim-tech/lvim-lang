@@ -220,6 +220,4 @@ function M.detach(_, ctx)
     terminate(ctx, "app.detach", "detaching")
 end
 
--- Placement tokens accepted by `:LvimLang log` (a layout override for this open).
-
 return M

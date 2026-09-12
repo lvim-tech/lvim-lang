@@ -3,8 +3,6 @@
 -- go through lvim-ui.select, the run-flags menu through lvim-ui.transient, the help window
 -- follows the outline show_help canon, and statusline getters aggregate provider segments.
 --
--- Implemented across M6 (pickers) / M9 (transient, statusline). The stub documents the contract.
---
 ---@module "lvim-lang.core.ui"
 
 local M = {}
