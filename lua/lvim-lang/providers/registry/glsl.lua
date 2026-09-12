@@ -16,8 +16,8 @@ return {
         },
         default = "glsl_analyzer",
     },
-    ft = {
-        ["glsl"] = {
+    ft = (function()
+        local block = {
             formatters = {
                 ["clang-format"] = {
                     mason = "clang-format",
@@ -26,37 +26,13 @@ return {
             },
             linters = {},
             defaults = { formatter = false, linter = false },
-        },
-        ["vert"] = {
-            formatters = {
-                ["clang-format"] = {
-                    mason = "clang-format",
-                    efm = { formatCommand = "clang-format --assume-filename=${INPUT}", formatStdin = true },
-                },
-            },
-            linters = {},
-            defaults = { formatter = false, linter = false },
-        },
-        ["frag"] = {
-            formatters = {
-                ["clang-format"] = {
-                    mason = "clang-format",
-                    efm = { formatCommand = "clang-format --assume-filename=${INPUT}", formatStdin = true },
-                },
-            },
-            linters = {},
-            defaults = { formatter = false, linter = false },
-        },
-        ["comp"] = {
-            formatters = {
-                ["clang-format"] = {
-                    mason = "clang-format",
-                    efm = { formatCommand = "clang-format --assume-filename=${INPUT}", formatStdin = true },
-                },
-            },
-            linters = {},
-            defaults = { formatter = false, linter = false },
-        },
-    },
+        }
+        -- One block for every GLSL stage filetype (glsl / vert / frag / geom / comp / tesc / tese).
+        local ft = {}
+        for _, name in ipairs({ "glsl", "vert", "frag", "geom", "comp", "tesc", "tese" }) do
+            ft[name] = vim.deepcopy(block)
+        end
+        return ft
+    end)(),
     icons = { statusline = "󰛧" },
 }

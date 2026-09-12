@@ -47,6 +47,12 @@ return {
             linters = {},
             defaults = { formatter = false, linter = false },
         },
+        -- `tf` (the .tf extension's own filetype) gets the same tools as `terraform`.
+        ["tf"] = {
+            formatters = { ["terraform-fmt"] = { efm = { formatCommand = "terraform fmt -", formatStdin = true } } },
+            linters = {},
+            defaults = { formatter = false, linter = false },
+        },
     },
     commands = {
         validate = {

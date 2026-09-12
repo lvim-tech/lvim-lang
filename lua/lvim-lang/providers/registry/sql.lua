@@ -11,8 +11,8 @@ return {
         servers = { sqls = { mason = "sqls", cmd = { "sqls" }, filetypes = { "sql", "mysql", "plsql" } } },
         default = "sqls",
     },
-    ft = {
-        ["sql"] = {
+    ft = (function()
+        local block = {
             formatters = {
                 ["sql-formatter"] = {
                     mason = "sql-formatter",
@@ -39,8 +39,14 @@ return {
                 },
             },
             defaults = { formatter = false, linter = false },
-        },
-    },
+        }
+        -- One block for every SQL dialect filetype (sql / mysql / plsql).
+        local ft = {}
+        for _, name in ipairs({ "sql", "mysql", "plsql" }) do
+            ft[name] = vim.deepcopy(block)
+        end
+        return ft
+    end)(),
     commands = {
         lint = {
             cmd = { "sqlfluff", "lint", "${file}" },

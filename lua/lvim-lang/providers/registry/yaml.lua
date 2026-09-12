@@ -17,8 +17,8 @@ return {
         },
         default = "yaml-language-server",
     },
-    ft = {
-        yaml = {
+    ft = (function()
+        local block = {
             formatters = {
                 ["prettier"] = {
                     mason = "prettier",
@@ -63,7 +63,13 @@ return {
                 },
             },
             defaults = { formatter = false, linter = false },
-        },
-    },
+        }
+        -- One block for every YAML filetype (yaml / yaml.docker-compose / yaml.gitlab).
+        local ft = {}
+        for _, name in ipairs({ "yaml", "yaml.docker-compose", "yaml.gitlab" }) do
+            ft[name] = vim.deepcopy(block)
+        end
+        return ft
+    end)(),
     icons = { statusline = "" },
 }
