@@ -35,22 +35,14 @@ end
 --- manifest, or `.git`).
 ---@param name string
 ---@return boolean
-local function root_matcher(name)
-    return name:match("%.sln$") ~= nil
-        or name:match("%.fsproj$") ~= nil
-        or name == "paket.dependencies"
-        or name == ".git"
-end
+--- The root markers — ONE list for lvim-ls (`lsp.root_patterns`) and for `current_root()`; globs
+--- match any entry with that extension (lvim-ls resolves them too).
+local ROOT_PATTERNS = { "*.fsproj", "*.sln", "paket.dependencies", ".git" }
 
---- Resolve the project root for the current buffer using F#'s root markers (function matcher).
+--- Resolve the project root for the current buffer with the same markers lvim-ls uses.
 ---@return string
 local function current_root()
-    local buf = vim.api.nvim_get_current_buf()
-    local name = vim.api.nvim_buf_get_name(buf)
-    if name ~= "" then
-        return vim.fs.root(buf, root_matcher) or vim.fs.dirname(name)
-    end
-    return vim.uv.cwd() or "."
+    return require("lvim-lang.core.root").current(ROOT_PATTERNS)
 end
 
 --- The LSP client_capabilities fragment: lvim-cmp's when present, else the Neovim defaults.
@@ -69,7 +61,7 @@ return {
     -- Per-filetype formatter/linter routing (chosen tools only; empty when none selected).
     efm = catalog.efm_groups("fsharp"),
     lsp = {
-        root_patterns = { ".fsproj", ".sln", "paket.dependencies", ".git" },
+        root_patterns = ROOT_PATTERNS,
         --- Built fresh per root so the fsautocomplete binary tracks the project's SDK (version manager
         --- / PATH).
         ---@return table
