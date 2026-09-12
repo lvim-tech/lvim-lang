@@ -78,6 +78,20 @@ local function normalize(node)
     }
 end
 
+--- The buffer already showing `uri`'s file, or nil. `vim.uri_to_bufnr` CREATES a buffer for a file
+--- that is not open, so a notification about an unopened file used to leave a stray buffer behind.
+---@param uri string
+---@return integer?
+local function open_bufnr_of(uri)
+    local fname = vim.fs.normalize(vim.uri_to_fname(uri))
+    for _, b in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_loaded(b) and vim.fs.normalize(vim.api.nvim_buf_get_name(b)) == fname then
+            return b
+        end
+    end
+    return nil
+end
+
 --- Arm the one-time cleanup that drops caches/pushers for wiped buffers.
 local cleanup_armed = false
 local function arm_cleanup()
@@ -102,8 +116,8 @@ function M.handler()
         if err or type(result) ~= "table" or not result.uri or type(result.outline) ~= "table" then
             return
         end
-        local bufnr = vim.uri_to_bufnr(result.uri)
-        if not vim.api.nvim_buf_is_valid(bufnr) then
+        local bufnr = open_bufnr_of(result.uri)
+        if not bufnr then
             return
         end
         -- The root outline node represents the whole file; its children are the top-level
