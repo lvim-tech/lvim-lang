@@ -5,9 +5,10 @@
 -- resolvable through the toolchain), the generic server-config module builds (cmd + lsp.config), the efm
 -- groups build, and each command carries a non-empty argv. Detection only — nothing is installed or run.
 --
--- Run headless (after require("lvim-lang").setup({})):
---   :lua =require("lvim-lang.scripts.validate").run()
--- or from a shell smoke test (see the module's run() return: { ok = boolean, problems = string[] }).
+-- This file lives OUTSIDE the plugin's lua/ tree (it is a maintainer script, not a runtime module), so
+-- it is loaded by path, after require("lvim-lang").setup({}):
+--   :lua =dofile("<lvim-lang repo>/scripts/validate.lua").run()
+-- or from a headless smoke test (run() returns { ok = boolean, problems = string[], count = integer }).
 --
 ---@module "lvim-lang.scripts.validate"
 
@@ -89,9 +90,15 @@ local function check_one(data, lang, problems)
         bad("catalog.efm_groups errored: " .. tostring(egroups))
     end
 
-    -- Commands: each argv must be a non-empty list of strings.
+    -- Commands: `cmd` is either an argv template (a non-empty list of strings) or a BUILDER function
+    -- (its argv is only known at run time — see core.declarative.build_commands), which needs a `desc`
+    -- since nothing else can label it.
     for sub, c in pairs(data.commands or {}) do
-        if type(c.cmd) ~= "table" or #c.cmd == 0 then
+        if type(c.cmd) == "function" then
+            if type(c.desc) ~= "string" or c.desc == "" then
+                bad(("command '%s' is a builder without a desc"):format(sub))
+            end
+        elseif type(c.cmd) ~= "table" or #c.cmd == 0 then
             bad(("command '%s' has an empty/absent cmd"):format(sub))
         else
             for i, part in ipairs(c.cmd) do
