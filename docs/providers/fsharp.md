@@ -16,7 +16,7 @@ Filetypes: `fsharp`. Project root: nearest `*.fsproj` → `*.sln` → `paket.dep
 
 Resolved per project root (nothing is installed here — see the install popup below):
 
-- **`dotnet`** — an explicit `dotnet_path` → a `dotnet_lookup_cmd` → a **version manager**
+- **`dotnet`** — an explicit `bin_paths.dotnet` → a `dotnet_lookup_cmd` → a **version manager**
   (`mise` / `asdf`, honouring the project's pinned SDK) → `PATH`.
 - **`fsautocomplete`** / **`fantomas`** / **`netcoredbg`** — an explicit path → the mason bin
   directory (where the installer drops them) → `PATH`.
@@ -107,10 +107,12 @@ require("lvim-lang").setup({
     providers = {
         fsharp = {
             -- Toolchain (explicit paths win over resolution).
-            dotnet_path = nil,
-            fsautocomplete_path = nil,
-            fantomas_path = nil,
-            netcoredbg_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                dotnet = nil,
+                fsautocomplete = nil,
+                fantomas = nil,
+                netcoredbg = nil,
+            },
             dotnet_lookup_cmd = nil, -- shell command whose first line is the `dotnet` path
             version_manager = nil, -- "mise" | "asdf" | false | function(root); default: mise→asdf→PATH
 

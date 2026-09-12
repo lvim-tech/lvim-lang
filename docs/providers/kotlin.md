@@ -98,13 +98,15 @@ require("lvim-lang").setup({
     providers = {
         kotlin = {
             -- Toolchain (explicit paths win over resolution).
-            kotlin_path = nil,
-            kotlinc_path = nil,
-            gradle_path = nil,
-            java_path = nil,
-            kotlin_language_server_path = nil,
-            ktlint_path = nil,
-            kotlin_debug_adapter_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                kotlin = nil,
+                kotlinc = nil,
+                gradle = nil,
+                java = nil,
+                ["kotlin-language-server"] = nil,
+                ktlint = nil,
+                ["kotlin-debug-adapter"] = nil,
+            },
             kotlin_lookup_cmd = nil, -- shell command whose first line is the `kotlin`/`kotlinc` path
             gradle_lookup_cmd = nil,
             java_lookup_cmd = nil,

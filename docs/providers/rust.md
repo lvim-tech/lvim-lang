@@ -95,9 +95,11 @@ require("lvim-lang").setup({
     providers = {
         rust = {
             -- Toolchain (explicit paths win over resolution).
-            cargo_path = nil,
-            rustc_path = nil,
-            rust_analyzer_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                cargo = nil,
+                rustc = nil,
+                ["rust-analyzer"] = nil,
+            },
             cargo_lookup_cmd = nil, -- shell command whose first line is the `cargo` path
             version_manager = nil, -- "rustup" | "mise" | "asdf" | false | function(root, tool); default: rustup→mise→asdf→PATH
 

@@ -13,9 +13,9 @@ Filetypes: `java`. Project root: `settings.gradle` / `settings.gradle.kts` / `bu
 
 Resolved per project root (nothing is installed here — see the install popup below):
 
-- **`java`** — an explicit `java_path` → a `java_lookup_cmd` → a **version manager** (`mise` /
+- **`java`** — an explicit `bin_paths.java` → a `java_lookup_cmd` → a **version manager** (`mise` /
   `asdf` / `sdkman`, honouring the project's pinned JDK) → `PATH`.
-- **`jdtls`** — an explicit `jdtls_path` → the mason bin / `PATH`.
+- **`jdtls`** — an explicit `bin_paths.jdtls` → the mason bin / `PATH`.
 
 jdtls is launched through the `jdtls` wrapper with a per-project **`-data <workspace>`** directory
 (a persistent index area), resolved under `workspace_root` (default `stdpath("cache")/jdtls`) keyed
@@ -106,8 +106,10 @@ require("lvim-lang").setup({
     providers = {
         java = {
             -- Toolchain (explicit paths win over resolution).
-            java_path = nil,
-            jdtls_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                java = nil,
+                jdtls = nil,
+            },
             java_lookup_cmd = nil, -- shell command whose first line is the `java` path
             version_manager = nil, -- "mise"|"asdf"|"sdkman"|false|function(root); default: mise→asdf→sdkman→PATH
 

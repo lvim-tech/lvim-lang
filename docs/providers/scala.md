@@ -46,12 +46,12 @@ the fact. While metals is streaming, the panel wears its name (`title` / `icon`)
 
 Resolved per project root (nothing is installed here — see the install popup below):
 
-- **`sbt`** / **`mill`** — an explicit path (`sbt_path` / `mill_path`) → a lookup command → a
+- **`sbt`** / **`mill`** — an explicit path (`bin_paths.sbt` / `bin_paths.mill`) → a lookup command → a
   **version manager** (`mise` / `asdf` / `sdkman`, honouring the project's pinned toolchain; `sbt` is
   a SDKMAN candidate, `mill` is not) → `PATH`.
-- **`java`** — an explicit `java_path` → a `java_lookup_cmd` → a version manager → `PATH`.
+- **`java`** — an explicit `bin_paths.java` → a `java_lookup_cmd` → a version manager → `PATH`.
 - **`metals`** / **`scalafmt`** — an explicit path → the mason bin / `PATH`.
-- **`bloop`** — an explicit `bloop_path` → `PATH` (the user's own coursier install).
+- **`bloop`** — an explicit `bin_paths.bloop` → `PATH` (the user's own coursier install).
 
 metals is a JVM program (needs `java` 11+, 17 recommended) launched through the mason `metals`
 wrapper. The Java-runtime requirement is surfaced in `:checkhealth lvim-lang` and as a one-time notice
@@ -162,12 +162,14 @@ require("lvim-lang").setup({
     providers = {
         scala = {
             -- Toolchain (explicit paths win over resolution).
-            sbt_path = nil,
-            mill_path = nil,
-            bloop_path = nil,
-            java_path = nil,
-            metals_path = nil,
-            scalafmt_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                sbt = nil,
+                mill = nil,
+                bloop = nil,
+                java = nil,
+                metals = nil,
+                scalafmt = nil,
+            },
             sbt_lookup_cmd = nil, -- shell command whose first line is the `sbt` path
             mill_lookup_cmd = nil,
             java_lookup_cmd = nil,

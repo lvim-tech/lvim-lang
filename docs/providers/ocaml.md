@@ -109,10 +109,12 @@ require("lvim-lang").setup({
     providers = {
         ocaml = {
             -- Toolchain (explicit paths win over resolution).
-            ocaml_path = nil,
-            dune_path = nil,
-            ocaml_lsp_path = nil, -- the `ocamllsp` binary
-            ocamlformat_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                ocaml = nil,
+                dune = nil,
+                ["ocaml-lsp"] = nil, -- the `ocamllsp` binary
+                ocamlformat = nil,
+            },
             earlybird_path = nil, -- the `ocamlearlybird` debug adapter
             ocaml_lookup_cmd = nil, -- shell command whose first line is the `ocaml` path
             version_manager = nil, -- "opam" | false | function(root, tool); default: active opam switch → PATH

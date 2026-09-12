@@ -77,7 +77,7 @@ function M.requirement(root)
         ok = found ~= nil,
         detail = found and ("found: " .. found) or "none of clojure / clj / lein / boot found",
         hint = "Install the Clojure CLI (clojure.org/guides/install_clojure) or Leiningen and put `clojure`"
-            .. " / `clj` / `lein` on PATH, or set providers.clojure.clojure_path / lein_path.",
+            .. " / `clj` / `lein` on PATH, or set providers.clojure.bin_paths.clojure / bin_paths.lein.",
         severity = "warn",
     }
 end

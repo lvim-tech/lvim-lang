@@ -16,8 +16,8 @@ Filetypes: `zig`, `zir`. Project root: `build.zig` → `build.zig.zon` → `.git
 Resolved per project root through the version manager (mise / asdf, which honour a project's
 `.tool-versions` / `mise.toml`), then PATH:
 
-- **`zig`** — explicit `zig_path` → `zig_lookup_cmd` → `mise/asdf which zig` → PATH.
-- **`zls`** — explicit `zls_path` → the mason bin → PATH.
+- **`zig`** — explicit `bin_paths.zig` → `zig_lookup_cmd` → `mise/asdf which zig` → PATH.
+- **`zls`** — explicit `bin_paths.zls` → the mason bin → PATH.
 - **`lldb-dap`** — explicit `lldb_dap_path` → the mason bin → PATH.
 
 Nothing is installed here. `zig fmt` uses the resolved `zig`; zls resolves the standard library,
@@ -95,8 +95,10 @@ require("lvim-lang").setup({
     providers = {
         zig = {
             -- Toolchain (explicit paths win over resolution).
-            zig_path = nil,
-            zls_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                zig = nil,
+                zls = nil,
+            },
             lldb_dap_path = nil,
             codelldb_path = nil,
             zig_lookup_cmd = nil, -- shell command whose first line is the `zig` path

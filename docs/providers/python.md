@@ -17,7 +17,7 @@ Filetypes: `python`. Project root: `pyproject.toml` → `setup.py` → `setup.cf
 
 The `python` interpreter is the crux — everything runs under it. Resolved per project root:
 
-- **`python`** — an explicit `python_path` → the **persisted interpreter pick** (`:LvimLang venv`)
+- **`python`** — an explicit `bin_paths.python` → the **persisted interpreter pick** (`:LvimLang venv`)
   → an **auto-detected environment** (`$VIRTUAL_ENV` → in-tree `.venv` / `venv` → `poetry` →
   `pipenv` → `$CONDA_PREFIX`) → a **version manager** (`mise` / `asdf` / `pyenv`, honouring the
   project's pin) → `python3` / `python` on `PATH`.
@@ -121,9 +121,11 @@ require("lvim-lang").setup({
     providers = {
         python = {
             -- Toolchain (explicit paths win over resolution).
-            python_path = nil,
-            basedpyright_path = nil,
-            ruff_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                python = nil,
+                basedpyright = nil,
+                ruff = nil,
+            },
             python_lookup_cmd = nil, -- shell command whose first line is the interpreter path
             version_manager = nil, -- "mise"|"asdf"|"pyenv"|false|function(root); default: mise→asdf→pyenv→PATH
 

@@ -12,10 +12,10 @@ Filetype: `erlang`. Project root: `rebar.config` → `erlang.mk` → `.git`.
 Erlang/OTP is the user's **own** runtime, usually managed by a version manager and pinned per project
 by `.tool-versions`. Resolved per project root:
 
-- **`erl`** — explicit `erl_path` → lookup cmd → version manager → PATH. The version manager tries
+- **`erl`** — explicit `bin_paths.erl` → lookup cmd → version manager → PATH. The version manager tries
   **mise**, then **asdf** (each `<mgr> which erl`, run in the project so `.tool-versions` wins).
   **kerl**-managed installs are found on PATH (kerl is a shell installer with no resolver CLI).
-- **`rebar3`** — explicit `rebar3_path` → the project-vendored escript (`<root>/rebar3`) → PATH.
+- **`rebar3`** — explicit `bin_paths.rebar3` → the project-vendored escript (`<root>/rebar3`) → PATH.
 - **`erlang_ls`** / **`erlfmt`** — mason packages (`erlang-ls` / `erlfmt`): explicit path → the mason
   bin → PATH. (The `erlang-ls` mason package installs the binary as `erlang_ls`.)
 
@@ -107,10 +107,12 @@ require("lvim-lang").setup({
     providers = {
         erlang = {
             -- Toolchain (explicit paths win over resolution).
-            erl_path = nil,
-            rebar3_path = nil,
-            erlang_ls_path = nil,
-            erlfmt_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                erl = nil,
+                rebar3 = nil,
+                ["erlang-ls"] = nil,
+                erlfmt = nil,
+            },
             erl_lookup_cmd = nil, -- shell command whose first line is the `erl` path
             version_manager = nil, -- "mise"|"asdf"|false|function(root); default: mise→asdf→PATH (kerl via PATH)
 

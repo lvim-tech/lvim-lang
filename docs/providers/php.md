@@ -12,7 +12,7 @@ Filetypes: `php`. Project root: `composer.json` → `.git`.
 
 Resolved per project root (explicit path wins over everything):
 
-- **`php`** — explicit `php_path` → `php_lookup_cmd` → version manager (**mise**, then **asdf**, each
+- **`php`** — explicit `bin_paths.php` → `php_lookup_cmd` → version manager (**mise**, then **asdf**, each
   `<mgr> which php` run in the project so a pinned version wins) → PATH. PHP is the user's **own**
   runtime (not lvim-pkg-installed).
 - **`composer`** — explicit → PATH.
@@ -101,13 +101,15 @@ require("lvim-lang").setup({
     providers = {
         php = {
             -- Toolchain (explicit paths win over resolution).
-            php_path = nil,
-            composer_path = nil,
-            intelephense_path = nil,
-            phpactor_path = nil,
-            php_cs_fixer_path = nil,
-            phpstan_path = nil,
-            phpunit_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                php = nil,
+                composer = nil,
+                intelephense = nil,
+                phpactor = nil,
+                ["php-cs-fixer"] = nil,
+                phpstan = nil,
+                phpunit = nil,
+            },
             php_debug_adapter_path = nil,
             php_lookup_cmd = nil, -- shell command whose first line is the `php` path
             version_manager = nil, -- "mise"|"asdf"|false|function(root); default: mise→asdf→PATH

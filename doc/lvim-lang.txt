@@ -68,8 +68,10 @@ Everything is configurable; the full default configuration:
         icons = { run_config = "..." },
         providers = {
             dart = {
-                flutter_path = nil,
-                dart_path = nil,
+                bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                    flutter = nil,
+                    dart = nil,
+                },
                 flutter_lookup_cmd = nil,
                 fvm = true,
                 sdk = {

@@ -82,8 +82,10 @@ require("lvim-lang").setup({
     providers = {
         dart = {
             -- Toolchain resolution.
-            flutter_path = nil, -- explicit flutter binary (wins over everything)
-            dart_path = nil, -- explicit dart binary (defaults to the dart beside flutter)
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                flutter = nil, -- explicit flutter binary (wins over everything)
+                dart = nil, -- explicit dart binary (defaults to the dart beside flutter)
+            },
             flutter_lookup_cmd = nil, -- a shell command whose first line is the flutter path
             fvm = true, -- honour <root>/.fvm/flutter_sdk
 

@@ -111,13 +111,15 @@ require("lvim-lang").setup({
     providers = {
         cpp = {
             -- Toolchain (explicit paths win over resolution). No version manager (system compilers).
-            clangd_path = nil,
-            clang_format_path = nil,
-            clang_tidy_path = nil,
-            cmake_path = nil,
-            make_path = nil,
-            cc_path = nil, -- the C compiler (default: `cc` on PATH)
-            cxx_path = nil, -- the C++ compiler (default: `c++` on PATH)
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                clangd = nil,
+                ["clang-format"] = nil,
+                ["clang-tidy"] = nil,
+                cmake = nil,
+                make = nil,
+                cc = nil, -- the C compiler (default: `cc` on PATH)
+                ["c++"] = nil, -- the C++ compiler (default: `c++` on PATH)
+            },
             ctest_path = nil, -- the test driver (default: `ctest` on PATH)
             codelldb_path = nil,
             cpptools_path = nil, -- the cpptools debug adapter (OpenDebugAD7)

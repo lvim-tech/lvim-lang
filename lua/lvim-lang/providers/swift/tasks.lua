@@ -104,7 +104,7 @@ function M.fmt(args, ctx)
     local swiftformat = toolchain.resolve("swift", "swiftformat", root)
     if not swiftformat then
         vim.notify(
-            "lvim-lang: swiftformat not found — install it from the mason registry (or set providers.swift.swiftformat_path)",
+            "lvim-lang: swiftformat not found — install it from the mason registry (or set providers.swift.bin_paths.swiftformat)",
             vim.log.levels.WARN,
             { title = "lvim-lang" }
         )

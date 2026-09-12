@@ -111,14 +111,16 @@ require("lvim-lang").setup({
     providers = {
         clojure = {
             -- Toolchain (explicit paths win over resolution).
-            clojure_path = nil,
-            clj_path = nil,
-            lein_path = nil,
-            boot_path = nil,
-            java_path = nil,
-            clojure_lsp_path = nil,
-            cljfmt_path = nil,
-            clj_kondo_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                clojure = nil,
+                clj = nil,
+                lein = nil,
+                boot = nil,
+                java = nil,
+                ["clojure-lsp"] = nil,
+                cljfmt = nil,
+                ["clj-kondo"] = nil,
+            },
             clojure_lookup_cmd = nil, -- shell command whose first line is the `clojure`/`clj` path
             lein_lookup_cmd = nil,
             boot_lookup_cmd = nil,

@@ -12,11 +12,11 @@ Filetypes: `swift`. Project root: `Package.swift` → `.git`.
 
 Resolved per project root (explicit path wins over everything):
 
-- **`swift`** — explicit `swift_path` → `swift_lookup_cmd` (the seam for swiftly, which has no `which`
+- **`swift`** — explicit `bin_paths.swift` → `swift_lookup_cmd` (the seam for swiftly, which has no `which`
   verb) → version manager (**mise**, then **asdf**) → PATH. Swift is the user's **own** toolchain (not
   lvim-pkg-installed).
 - **`sourcekit-lsp`** — **ships with the Swift toolchain** (no mason package): explicit
-  `sourcekit_lsp_path` → beside the resolved `swift` in its bin dir → PATH.
+  `bin_paths["sourcekit-lsp"]` → beside the resolved `swift` in its bin dir → PATH.
 - **`swiftformat`** — explicit → the mason bin → PATH.
 - **`lldb-dap`** / **`codelldb`** — explicit → the mason bin → PATH.
 
@@ -98,10 +98,12 @@ require("lvim-lang").setup({
     providers = {
         swift = {
             -- Toolchain (explicit paths win over resolution).
-            swift_path = nil,
-            sourcekit_lsp_path = nil,
-            swiftformat_path = nil,
-            lldb_dap_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                swift = nil,
+                ["sourcekit-lsp"] = nil,
+                swiftformat = nil,
+                ["lldb-dap"] = nil,
+            },
             codelldb_path = nil,
             swift_lookup_cmd = nil, -- shell command whose first non-empty line is the `swift` path (swiftly &c.)
             version_manager = nil, -- "mise"|"asdf"|false|function(root); default: mise→asdf→PATH

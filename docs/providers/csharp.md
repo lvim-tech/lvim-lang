@@ -16,7 +16,7 @@ Filetypes: `cs`. Project root: nearest `*.sln` → `*.csproj` → `.git`.
 
 Resolved per project root (nothing is installed here — see the install popup below):
 
-- **`dotnet`** — an explicit `dotnet_path` → a `dotnet_lookup_cmd` → a **version manager**
+- **`dotnet`** — an explicit `bin_paths.dotnet` → a `dotnet_lookup_cmd` → a **version manager**
   (`mise` / `asdf`, honouring the project's pinned SDK) → `PATH`.
 - **`OmniSharp`** / the **roslyn** server / **`csharpier`** / **`netcoredbg`** — an explicit path →
   the mason bin directory (where the installer drops them) → `PATH`.
@@ -102,11 +102,13 @@ require("lvim-lang").setup({
     providers = {
         csharp = {
             -- Toolchain (explicit paths win over resolution).
-            dotnet_path = nil,
-            omnisharp_path = nil,
-            roslyn_path = nil,
-            csharpier_path = nil,
-            netcoredbg_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                dotnet = nil,
+                omnisharp = nil,
+                roslyn = nil,
+                csharpier = nil,
+                netcoredbg = nil,
+            },
             dotnet_lookup_cmd = nil, -- shell command whose first line is the `dotnet` path
             version_manager = nil, -- "mise" | "asdf" | false | function(root); default: mise→asdf→PATH
 

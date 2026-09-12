@@ -13,7 +13,7 @@ Filetypes: `ruby`, `eruby`. Project root: `Gemfile` → `Rakefile` → `.ruby-ve
 Ruby installs are managed by a version manager and pinned by the project's `.ruby-version`. Resolved
 per project root:
 
-- **`ruby`** — explicit `ruby_path` → lookup cmd → version manager → PATH. The version manager tries
+- **`ruby`** — explicit `bin_paths.ruby` → lookup cmd → version manager → PATH. The version manager tries
   **mise**, **asdf**, **rbenv** (each `<mgr> which ruby`, run in the project so `.ruby-version` /
   `.tool-versions` wins), then **chruby** / **rvm** (matching `.ruby-version` under `~/.rubies` /
   `~/.rvm/rubies`).
@@ -107,11 +107,13 @@ require("lvim-lang").setup({
     providers = {
         ruby = {
             -- Toolchain (explicit paths win over resolution).
-            ruby_path = nil,
-            bundle_path = nil,
-            rubocop_path = nil,
-            ruby_lsp_path = nil,
-            rdbg_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                ruby = nil,
+                bundle = nil,
+                rubocop = nil,
+                ["ruby-lsp"] = nil,
+                rdbg = nil,
+            },
             ruby_lookup_cmd = nil, -- shell command whose first line is the `ruby` path
             version_manager = nil, -- "mise"|"asdf"|"rbenv"|"chruby"|"rvm"|false|function(root); default: mise→asdf→rbenv→chruby→rvm→PATH
             debug_rspec_command = nil, -- force the rspec command for :LvimLang debug-test (else auto)

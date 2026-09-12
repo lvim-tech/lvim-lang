@@ -135,13 +135,15 @@ require("lvim-lang").setup({
     providers = {
         haskell = {
             -- Toolchain (explicit paths win over resolution).
-            ghc_path = nil,
-            cabal_path = nil,
-            stack_path = nil,
-            hls_path = nil, -- the haskell-language-server(-wrapper) binary
-            fourmolu_path = nil,
-            ormolu_path = nil,
-            hlint_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                ghc = nil,
+                cabal = nil,
+                stack = nil,
+                ["haskell-language-server"] = nil, -- the haskell-language-server(-wrapper) binary
+                fourmolu = nil,
+                ormolu = nil,
+                hlint = nil,
+            },
             ghc_lookup_cmd = nil, -- shell command whose first line is the `ghc` path
             version_manager = nil, -- "ghcup" | "mise" | "asdf" | false | function(root, tool); default: ghcup→mise→asdf→GHCup bin→PATH
 

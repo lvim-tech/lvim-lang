@@ -17,7 +17,7 @@ Filetypes: `typescript`, `typescriptreact`, `javascript`, `javascriptreact`. Pro
 
 Resolved per project root:
 
-- **`node`** — an explicit `node_path` → a `node_lookup_cmd` → a **version manager** (`mise` / `asdf`
+- **`node`** — an explicit `bin_paths.node` → a `node_lookup_cmd` → a **version manager** (`mise` / `asdf`
   / `fnm`, honouring the project's pin) → `PATH`.
 - **`vtsls`** / **`eslint`** (the servers) — an explicit path → the mason bin → `PATH`.
 - **`prettier`** / **`tsc`** / **`vitest`** / **`jest`** — the project's **`node_modules/.bin`** →
@@ -108,10 +108,12 @@ require("lvim-lang").setup({
     providers = {
         typescript = {
             -- Toolchain (explicit paths win over resolution).
-            node_path = nil,
-            vtsls_path = nil,
-            eslint_lsp_path = nil,
-            prettier_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                node = nil,
+                vtsls = nil,
+                ["eslint-lsp"] = nil,
+                prettier = nil,
+            },
             node_lookup_cmd = nil, -- shell command whose first line is the `node` path
             version_manager = nil, -- "mise"|"asdf"|"fnm"|false|function(root); default: mise→asdf→fnm→PATH
 

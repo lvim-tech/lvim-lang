@@ -36,7 +36,7 @@ Consequences (and caveats):
 
 Only one tool, resolved per project root (nothing is installed here):
 
-- **`ucm`** — an explicit `ucm_path` → a `ucm_lookup_cmd` (its first output line) → `PATH`.
+- **`ucm`** — an explicit `bin_paths.ucm` → a `ucm_lookup_cmd` (its first output line) → `PATH`.
 
 Install Unison (UCM) yourself (see the Unison docs). `:checkhealth lvim-lang` reports whether `ucm`
 resolves and reminds you the LSP needs a running UCM.
@@ -90,7 +90,9 @@ require("lvim-lang").setup({
     providers = {
         unison = {
             -- Toolchain (explicit path wins over resolution).
-            ucm_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                ucm = nil,
+            },
             ucm_lookup_cmd = nil, -- shell command whose first line is the `ucm` path
 
             -- The TCP endpoint the editor connects to for the LSP (where a running UCM serves it).

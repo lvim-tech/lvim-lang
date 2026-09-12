@@ -12,7 +12,7 @@ Filetypes: `go`, `gomod`, `gowork`, `gotmpl`. Project root: `go.work` → `go.mo
 
 Resolved per project root (nothing is installed here — see the install popup below):
 
-- **`go`** — an explicit `go_path` → a `go_lookup_cmd` → a **version manager** (`mise` / `asdf`,
+- **`go`** — an explicit `bin_paths.go` → a `go_lookup_cmd` → a **version manager** (`mise` / `asdf`,
   honouring the project's pinned version) → `PATH`.
 - **`gopls`** / **`dlv`** — an explicit path → `go env GOBIN` / `GOPATH/bin` (where `go install`
   drops them) → `PATH`.
@@ -101,9 +101,11 @@ require("lvim-lang").setup({
     providers = {
         go = {
             -- Toolchain (explicit paths win over resolution).
-            go_path = nil,
-            gopls_path = nil,
-            dlv_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                go = nil,
+                gopls = nil,
+                dlv = nil,
+            },
             go_lookup_cmd = nil, -- shell command whose first line is the `go` path
             version_manager = nil, -- "mise" | "asdf" | false | function(root); default: mise→asdf→PATH
 

@@ -13,7 +13,7 @@ Filetypes: `elixir`, `eelixir`, `heex`. Project root: `mix.exs` → `.git`.
 Elixir installs are managed by a version manager and pinned by the project's `.tool-versions`.
 Resolved per project root:
 
-- **`elixir`** — explicit `elixir_path` → lookup cmd → version manager → PATH. The version manager
+- **`elixir`** — explicit `bin_paths.elixir` → lookup cmd → version manager → PATH. The version manager
   tries **mise**, then **asdf** (each `<mgr> which elixir`, run in the project so `.tool-versions`
   wins).
 - **`mix`** / **`iex`** — ship with elixir: the selected elixir's bin dir → version manager → PATH.
@@ -110,10 +110,12 @@ require("lvim-lang").setup({
     providers = {
         elixir = {
             -- Toolchain (explicit paths win over resolution).
-            elixir_path = nil,
-            mix_path = nil,
-            elixir_ls_path = nil,
-            elixir_ls_debugger_path = nil,
+            bin_paths = { -- explicit binaries by toolchain tool key (win over every other strategy)
+                elixir = nil,
+                mix = nil,
+                ["elixir-ls"] = nil,
+                ["elixir-ls-debugger"] = nil,
+            },
             elixir_lookup_cmd = nil, -- shell command whose first line is the `elixir` path
             version_manager = nil, -- "mise"|"asdf"|false|function(root, tool); default: mise→asdf→PATH
 
