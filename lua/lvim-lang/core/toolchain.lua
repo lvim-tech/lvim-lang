@@ -173,15 +173,17 @@ end
 --- `mise which`, FVM, an explicit pin) is NOT what the inherited PATH points at: run directly, its
 --- own child lookups (rust-analyzer → rustc / the proc-macro server, cargo → rustc, gopls → go, a
 --- node script → node, jdtls → JAVA_HOME) would hit a DIFFERENT install through PATH. A proxy (rustup,
---- mise shims) would have set the env up; a direct spawn must do it here. The bin dir of `tool` and of
---- the provider's runtimes — when won by a "path" strategy and when PATH would otherwise resolve that
---- binary's name to ANOTHER directory — goes first on PATH. A runtime's `home` var (GOROOT /
---- JAVA_HOME) is re-pointed at the resolved install whenever the editor's env names a different one,
---- INDEPENDENTLY of PATH: a right PATH with a stale GOROOT still compiles against another standard
---- library. Returns `base` unchanged (possibly nil) when nothing needs to change.
+--- mise shims) would have set the env up; a direct spawn must do it here.
+--- The bin dir of the provider's RUNTIMES — when won by a "path" strategy and when PATH would
+--- otherwise resolve that binary's name to ANOTHER directory — goes first on PATH, the one about to
+--- run ahead of the rest. A runtime's `home` var (GOROOT / JAVA_HOME) is re-pointed at the resolved
+--- install whenever the editor's env names a different one, INDEPENDENTLY of PATH: a right PATH with
+--- a stale GOROOT still compiles against another standard library. Returns `base` unchanged
+--- (possibly nil) when nothing needs to change.
 ---@param provider string
 ---@param root string
----@param tool? string                  the binary about to be spawned (its own dir is considered first)
+---@param tool? string                  the binary about to be spawned; when it is one of the provider's
+---                                     runtimes, that install leads PATH (and is resolved for it)
 ---@param base? table<string, string>   an env the caller already passes (wins over ours)
 ---@return table<string, string>|nil
 function M.env(provider, root, tool, base)
@@ -220,11 +222,25 @@ function M.env(provider, root, tool, base)
         seen[dir] = true
         dirs[#dirs + 1] = dir
     end
-    if tool and spec.toolchain.tools[tool] then
-        consider(tool, true)
-    end
+    -- Only a RUNTIME / SDK directory is worth putting first, so the runtimes are the whole list.
+    -- A package-managed server (lvim-pkg, mason) lives in a SHARED bin dir of unrelated tools —
+    -- prettier, dlv, golangci-lint, efm — which holds no runtime for it to find; leading PATH with
+    -- it would shadow the project's own tools (node_modules/.bin) for everything that server shells
+    -- out to. `tool` therefore only says which runtime is about to RUN: its install goes first, and
+    -- is resolved even when it is an optional one.
+    local order = {}
     for i, rt in ipairs(spec.toolchain.runtimes or {}) do
-        consider(rt.key, i == 1 or rt.require == true, rt.home)
+        -- Eager for the primary runtime, one declared required, and the one about to run; an
+        -- optional runtime is otherwise used only once something else has cached it.
+        local entry = { rt = rt, eager = i == 1 or rt.require == true or rt.key == tool }
+        if rt.key == tool then
+            table.insert(order, 1, entry)
+        else
+            order[#order + 1] = entry
+        end
+    end
+    for _, entry in ipairs(order) do
+        consider(entry.rt.key, entry.eager, entry.rt.home)
     end
     if #dirs == 0 and next(homes) == nil then
         return base
