@@ -120,22 +120,49 @@ function M.invalidate(provider, root)
         return
     end
     local prefix = provider .. ":"
+    local kinds = winner_kind[root] or {}
     for k in pairs(cached) do
         if vim.startswith(k, prefix) then
             cached[k] = nil
+            -- The kind record is read only beside a live path, but the two caches must not drift:
+            -- what is forgotten is forgotten in both.
+            kinds[k] = nil
         end
     end
 end
 
---- Is `dir` already an entry of `path_value` (a PATH string)?
+--- The same directory, through whichever symlinks name it? A version manager's `latest` is
+--- usually a link to the versioned directory beside it, and re-pointing GOROOT from one spelling
+--- of an install to another spelling of the SAME install is churn, not a fix.
+---@param a string
+---@param b string
+---@return boolean
+local function same_dir(a, b)
+    if a == b then
+        return true
+    end
+    local ra, rb = vim.uv.fs_realpath(a), vim.uv.fs_realpath(b)
+    return ra ~= nil and ra == rb
+end
+
+--- Would a child's PATH lookup of `path`'s own binary NAME land on `path` itself?
+--- Presence of the directory on PATH is NOT the question: when an EARLIER entry holds a binary of the
+--- same name, the child finds THAT one — a second install of the very tool the editor resolved, which
+--- is the mix-up env() exists to prevent. Only the first entry that holds the name can win, so the
+--- walk stops there.
 ---@param path_value string
----@param dir string
+---@param path string                 the resolved absolute path of the tool
 ---@param sep string
 ---@return boolean
-local function on_path(path_value, dir, sep)
+local function path_resolves(path_value, path, sep)
+    local bin = vim.fs.basename(path)
+    local dir = vim.fs.normalize(vim.fs.dirname(path))
     for _, entry in ipairs(vim.split(path_value, sep, { plain = true })) do
-        if entry ~= "" and vim.fs.normalize(entry) == dir then
-            return true
+        if entry ~= "" then
+            local e = vim.fs.normalize(entry)
+            if vim.fn.executable(e .. "/" .. bin) == 1 then
+                return same_dir(e, dir)
+            end
         end
     end
     return false
@@ -147,9 +174,11 @@ end
 --- own child lookups (rust-analyzer → rustc / the proc-macro server, cargo → rustc, gopls → go, a
 --- node script → node, jdtls → JAVA_HOME) would hit a DIFFERENT install through PATH. A proxy (rustup,
 --- mise shims) would have set the env up; a direct spawn must do it here. The bin dir of `tool` and of
---- the provider's runtimes — when won by a "path" strategy and not already on PATH — goes first on
---- PATH, and a runtime's `home` var (GOROOT / JAVA_HOME), when the editor's env sets it, is re-pointed
---- at that install. Returns `base` unchanged (possibly nil) when nothing needs to change.
+--- the provider's runtimes — when won by a "path" strategy and when PATH would otherwise resolve that
+--- binary's name to ANOTHER directory — goes first on PATH. A runtime's `home` var (GOROOT /
+--- JAVA_HOME) is re-pointed at the resolved install whenever the editor's env names a different one,
+--- INDEPENDENTLY of PATH: a right PATH with a stale GOROOT still compiles against another standard
+--- library. Returns `base` unchanged (possibly nil) when nothing needs to change.
 ---@param provider string
 ---@param root string
 ---@param tool? string                  the binary about to be spawned (its own dir is considered first)
@@ -176,16 +205,20 @@ function M.env(provider, root, tool, base)
             return
         end
         local dir = vim.fs.normalize(vim.fs.dirname(path))
-        if on_path(path_value, dir, sep) then
+        -- The install root, which a `home` var points AT (its bin dir is one level down). Decided
+        -- before PATH and regardless of it: the two are independent facts about the same install.
+        if home then
+            local current = vim.env[home]
+            local install = vim.fs.dirname(dir)
+            if current and current ~= "" and not same_dir(vim.fs.normalize(current), install) then
+                homes[home] = homes[home] or install
+            end
+        end
+        if path_resolves(path_value, path, sep) or seen[dir] then
             return
         end
-        if not seen[dir] then
-            seen[dir] = true
-            dirs[#dirs + 1] = dir
-        end
-        if home and vim.env[home] and vim.env[home] ~= "" then
-            homes[home] = homes[home] or vim.fs.dirname(dir)
-        end
+        seen[dir] = true
+        dirs[#dirs + 1] = dir
     end
     if tool and spec.toolchain.tools[tool] then
         consider(tool, true)
@@ -193,10 +226,13 @@ function M.env(provider, root, tool, base)
     for i, rt in ipairs(spec.toolchain.runtimes or {}) do
         consider(rt.key, i == 1 or rt.require == true, rt.home)
     end
-    if #dirs == 0 then
+    if #dirs == 0 and next(homes) == nil then
         return base
     end
-    local env = { PATH = table.concat(dirs, sep) .. (path_value ~= "" and (sep .. path_value) or "") }
+    local env = {}
+    if #dirs > 0 then
+        env.PATH = table.concat(dirs, sep) .. (path_value ~= "" and (sep .. path_value) or "")
+    end
     for var, dir in pairs(homes) do
         env[var] = dir
     end
