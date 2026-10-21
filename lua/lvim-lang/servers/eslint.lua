@@ -96,6 +96,9 @@ return {
                 on_attach = catalog.lsp_on_attach("typescript", "eslint"),
                 settings = settings,
             }
+            -- The toolchain's bin dir first on PATH, so the server's own child lookups hit the same
+            -- install it was resolved from (core.toolchain.env).
+            cfg.cmd_env = toolchain.env("typescript", root, "eslint-lsp")
             return cfg
         end,
     },

@@ -39,6 +39,7 @@ local runcfg = require("lvim-lang.core.runcfg")
 ---@field label?    string          -- health / requirement label (a requirement is only surfaced when set + require)
 ---@field hint?     string          -- how to install it when missing
 ---@field severity? "error"|"warn"|"info"  -- requirement level (default "warn")
+---@field home?     string          -- env var naming the install root (GOROOT / JAVA_HOME); see core.toolchain.env
 
 ---@class LvimLangCommandCtx        -- what a dynamic `cmd` builder is handed
 ---@field provider string           -- the provider name
@@ -136,8 +137,13 @@ end
 local function build_toolchain(name, data)
     ---@type table<string, LvimLangToolchainStrategy[]>
     local tools = {}
+    -- The runtimes in declared order (the first is the primary): core.toolchain.env puts their resolved
+    -- bin dirs first on PATH for every process spawned from the provider's tools.
+    ---@type LvimLangToolchainRuntime[]
+    local runtimes = {}
     for _, rt in ipairs(runtimes_of(data)) do
         local key = rt.key or rt.bin
+        runtimes[#runtimes + 1] = { key = key, require = rt.require, home = rt.home }
         tools[key] = detect.runtime_strategies(
             name,
             key,
@@ -174,7 +180,7 @@ local function build_toolchain(name, data)
             end
         end
     end
-    return { tools = tools, version = data.version or detect.version }
+    return { tools = tools, runtimes = runtimes, version = data.version or detect.version }
 end
 
 --- The task ROW label for an argv, as it actually runs: the binary by its basename (its full mason /
@@ -478,6 +484,8 @@ function M.server_module(key)
                 if se.init_options and next(se.init_options) then
                     cfg.init_options = se.init_options
                 end
+                -- A toolchain-resolved server runs with its toolchain's bin dir first on PATH.
+                cfg.cmd_env = toolchain.env(name, root, key)
                 return cfg
             end,
         },

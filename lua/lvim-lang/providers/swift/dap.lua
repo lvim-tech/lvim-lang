@@ -182,7 +182,9 @@ function M.debug_test(_, ctx)
     local root = ctx.root or root_of(ctx.bufnr)
     local swift = toolchain.resolve("swift", "swift", root) or "swift"
     vim.notify("lvim-lang: building the test bundle…", vim.log.levels.INFO, TITLE)
-    vim.system({ swift, "build", "--build-tests" }, { cwd = root, text = true }, function(res)
+    -- A version-managed swift, spawned directly, must find its own toolchain (core.toolchain.env).
+    local env = toolchain.env("swift", root, "swift")
+    vim.system({ swift, "build", "--build-tests" }, { cwd = root, text = true, env = env }, function(res)
         vim.schedule(function()
             if res.code ~= 0 then
                 vim.notify(

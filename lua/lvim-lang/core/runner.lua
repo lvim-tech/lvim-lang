@@ -29,6 +29,32 @@ local function tasks_module(reason)
     return ok and tasks or nil
 end
 
+--- The task env: the spec's own env over the provider's toolchain env (core.toolchain.env), so a
+--- toolchain binary resolved inside a version-manager install (rustup's cargo, a mise-pinned go) finds
+--- its OWN compiler / runtime on PATH, not whatever the editor's PATH lists first. The toolchain cache
+--- is keyed by project root, so the root is derived from the task's cwd with the provider's markers.
+---@param provider string
+---@param spec { cmd: string[], cwd?: string, env?: table }
+---@return table|nil
+local function toolchain_env(provider, spec)
+    local reg = require("lvim-lang.registry").get(provider)
+    local cwd = spec.cwd or vim.uv.cwd()
+    if not reg or type(cwd) ~= "string" or type(spec.cmd) ~= "table" then
+        return spec.env
+    end
+    local root = vim.fs.root(cwd, reg.root_patterns or { ".git" }) or cwd
+    -- The tool about to run: the toolchain key whose cached resolution IS cmd[1] (if any).
+    local tool
+    local prefix = provider .. ":"
+    for k, path in pairs(require("lvim-lang.state").toolchains[root] or {}) do
+        if vim.startswith(k, prefix) and path == spec.cmd[1] then
+            tool = k:sub(#prefix + 1)
+            break
+        end
+    end
+    return require("lvim-lang.core.toolchain").env(provider, root, tool, spec.env)
+end
+
 --- Build an lvim-tasks spec from a provider command and run it. A spec may set its own display
 --- `group` (Build/Run/Test/Dependencies…); otherwise it defaults to "lvim-lang:<provider>".
 --- The task's output panel is REVEALED (unless `spec.show == false`) so the action is visible, and
@@ -58,7 +84,7 @@ function M.run(provider, spec)
         name = spec.name,
         cmd = spec.cmd,
         cwd = spec.cwd,
-        env = spec.env,
+        env = toolchain_env(provider, spec),
         matcher = spec.matcher,
         hooks = hooks,
         group = spec.group or ("lvim-lang:" .. provider),

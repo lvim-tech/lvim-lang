@@ -83,6 +83,9 @@ return {
             if so.settings and next(so.settings) then
                 cfg.settings = so.settings
             end
+            -- The toolchain's bin dir first on PATH, so the server's own child lookups hit the same
+            -- install it was resolved from (core.toolchain.env).
+            cfg.cmd_env = toolchain.env("fsharp", current_root(), "fsautocomplete")
             return cfg
         end,
     },

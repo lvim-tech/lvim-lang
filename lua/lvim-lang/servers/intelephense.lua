@@ -92,6 +92,9 @@ return {
             if next(init) then
                 cfg.init_options = init
             end
+            -- The toolchain's bin dir first on PATH, so the server's own child lookups hit the same
+            -- install it was resolved from (core.toolchain.env).
+            cfg.cmd_env = toolchain.env("php", current_root(), "intelephense")
             return cfg
         end,
     },

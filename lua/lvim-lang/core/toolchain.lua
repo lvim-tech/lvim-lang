@@ -13,11 +13,22 @@ local state = require("lvim-lang.state")
 ---@field kind  "path"|"which"                     "path" verifies a literal/derived path is executable; "which" looks a binary up on PATH
 ---@field value string|fun(root: string): string|nil  Literal path / binary name, or a resolver of one
 
+---@class LvimLangToolchainRuntime
+---@field key      string   toolchain key of a user-owned runtime/SDK tool (cargo, go, java, node …)
+---@field require? boolean  resolved eagerly by env(); an optional runtime is only used once cached
+---@field home?    string   env var naming the install root (GOROOT, JAVA_HOME), re-pointed by env()
+
 ---@class LvimLangToolchainSpec
----@field tools    table<string, LvimLangToolchainStrategy[]>  tool name → ordered strategies
----@field version? fun(bin: string): string|nil               Version string builder (for status/health)
+---@field tools     table<string, LvimLangToolchainStrategy[]>  tool name → ordered strategies
+---@field runtimes? LvimLangToolchainRuntime[]                 the provider's runtimes, in declared order
+---@field version?  fun(bin: string): string|nil               Version string builder (for status/health)
 
 local M = {}
+
+-- root → ("provider:tool" → the winning strategy kind). Kept beside the state cache: a "path" winner
+-- may live OUTSIDE the inherited PATH (a rustup toolchain dir, a mise-pinned SDK, an FVM SDK), which
+-- env() must then put first on PATH for the spawned process. A missing record reads as "unknown".
+local winner_kind = {}
 
 --- Compound cache key so several providers can share a root without colliding.
 ---@param provider string
@@ -72,6 +83,8 @@ function M.resolve(provider, tool, root)
         if path then
             state.toolchains[root] = state.toolchains[root] or {}
             state.toolchains[root][key(provider, tool)] = path
+            winner_kind[root] = winner_kind[root] or {}
+            winner_kind[root][key(provider, tool)] = strategy.kind
             return path
         end
     end
@@ -112,6 +125,82 @@ function M.invalidate(provider, root)
             cached[k] = nil
         end
     end
+end
+
+--- Is `dir` already an entry of `path_value` (a PATH string)?
+---@param path_value string
+---@param dir string
+---@param sep string
+---@return boolean
+local function on_path(path_value, dir, sep)
+    for _, entry in ipairs(vim.split(path_value, sep, { plain = true })) do
+        if entry ~= "" and vim.fs.normalize(entry) == dir then
+            return true
+        end
+    end
+    return false
+end
+
+--- The environment a process spawned from a resolved toolchain binary needs, merged under `base`.
+--- A tool resolved to an absolute path inside a version-manager / SDK install (`rustup which`,
+--- `mise which`, FVM, an explicit pin) is NOT what the inherited PATH points at: run directly, its
+--- own child lookups (rust-analyzer → rustc / the proc-macro server, cargo → rustc, gopls → go, a
+--- node script → node, jdtls → JAVA_HOME) would hit a DIFFERENT install through PATH. A proxy (rustup,
+--- mise shims) would have set the env up; a direct spawn must do it here. The bin dir of `tool` and of
+--- the provider's runtimes — when won by a "path" strategy and not already on PATH — goes first on
+--- PATH, and a runtime's `home` var (GOROOT / JAVA_HOME), when the editor's env sets it, is re-pointed
+--- at that install. Returns `base` unchanged (possibly nil) when nothing needs to change.
+---@param provider string
+---@param root string
+---@param tool? string                  the binary about to be spawned (its own dir is considered first)
+---@param base? table<string, string>   an env the caller already passes (wins over ours)
+---@return table<string, string>|nil
+function M.env(provider, root, tool, base)
+    local spec = require("lvim-lang.registry").get(provider)
+    if not spec or not spec.toolchain or type(root) ~= "string" then
+        return base
+    end
+    local sep = vim.fn.has("win32") == 1 and ";" or ":"
+    local path_value = vim.env.PATH or ""
+    local dirs, seen, homes = {}, {}, {}
+    --- Collect the bin dir of tool `t` (resolving it when `eager`, else only when already cached).
+    local function consider(t, eager, home)
+        local k = key(provider, t)
+        local path
+        if eager then
+            path = M.resolve(provider, t, root)
+        else
+            path = (state.toolchains[root] or {})[k]
+        end
+        if not path or (winner_kind[root] or {})[k] ~= "path" then
+            return
+        end
+        local dir = vim.fs.normalize(vim.fs.dirname(path))
+        if on_path(path_value, dir, sep) then
+            return
+        end
+        if not seen[dir] then
+            seen[dir] = true
+            dirs[#dirs + 1] = dir
+        end
+        if home and vim.env[home] and vim.env[home] ~= "" then
+            homes[home] = homes[home] or vim.fs.dirname(dir)
+        end
+    end
+    if tool and spec.toolchain.tools[tool] then
+        consider(tool, true)
+    end
+    for i, rt in ipairs(spec.toolchain.runtimes or {}) do
+        consider(rt.key, i == 1 or rt.require == true, rt.home)
+    end
+    if #dirs == 0 then
+        return base
+    end
+    local env = { PATH = table.concat(dirs, sep) .. (path_value ~= "" and (sep .. path_value) or "") }
+    for var, dir in pairs(homes) do
+        env[var] = dir
+    end
+    return vim.tbl_extend("force", env, base or {})
 end
 
 return M

@@ -28,6 +28,9 @@ local DATA = {
         bin = "go",
         key = "go",
         lookup_key = "go_lookup_cmd",
+        -- An exported GOROOT (mise activation sets one) must follow a project-pinned go, or that go
+        -- runs against another version's standard library.
+        home = "GOROOT",
         require = true,
         label = "Go toolchain",
         hint = "Install Go and put `go` on PATH (or set providers.go.bin_paths.go); gopls needs the go command + GOROOT.",

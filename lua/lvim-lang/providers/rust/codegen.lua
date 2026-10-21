@@ -60,7 +60,9 @@ function M.expand(args, ctx)
     local cmd = { cargo, "expand" }
     vim.list_extend(cmd, args)
     vim.notify("lvim-lang: expanding macros…", vim.log.levels.INFO, TITLE)
-    vim.system(cmd, { cwd = root, text = true }, function(res)
+    -- rustup's toolchain cargo, spawned directly, must find ITS rustc (core.toolchain.env).
+    local env = toolchain.env("rust", root, "cargo")
+    vim.system(cmd, { cwd = root, text = true, env = env }, function(res)
         vim.schedule(function()
             if res.code ~= 0 or not res.stdout or res.stdout == "" then
                 vim.notify(

@@ -123,9 +123,11 @@ function M.debug_test(_, ctx)
     local root = ctx.root or root_of(ctx.bufnr)
     local cargo = toolchain.resolve("rust", "cargo", root) or "cargo"
     vim.notify("lvim-lang: building the test binary…", vim.log.levels.INFO, TITLE)
+    -- rustup's toolchain cargo, spawned directly, must find ITS rustc (core.toolchain.env).
+    local opts = { cwd = root, text = true, env = toolchain.env("rust", root, "cargo") }
     -- --message-format=json emits one JSON object per artifact; the test executable is the entry with
     -- profile.test == true and a non-null `executable`.
-    vim.system({ cargo, "test", "--no-run", "--message-format=json" }, { cwd = root, text = true }, function(res)
+    vim.system({ cargo, "test", "--no-run", "--message-format=json" }, opts, function(res)
         vim.schedule(function()
             if res.code ~= 0 then
                 vim.notify("lvim-lang: cargo test --no-run failed: " .. (res.stderr or ""), vim.log.levels.ERROR, TITLE)

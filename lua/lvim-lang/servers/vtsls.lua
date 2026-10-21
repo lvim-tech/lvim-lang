@@ -77,6 +77,9 @@ return {
             if so.init_options and next(so.init_options) then
                 cfg.init_options = so.init_options
             end
+            -- The toolchain's bin dir first on PATH, so the server's own child lookups hit the same
+            -- install it was resolved from (core.toolchain.env).
+            cfg.cmd_env = toolchain.env("typescript", current_root(), "vtsls")
             return cfg
         end,
     },

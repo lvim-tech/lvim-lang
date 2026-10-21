@@ -33,6 +33,7 @@ local DATA = {
             bin = "java",
             key = "java",
             lookup_key = "java_lookup_cmd",
+            home = "JAVA_HOME", -- re-pointed at a project-pinned JDK (core.toolchain.env)
             sdkman = "java",
             require = true,
             label = "Java runtime (Clojure runs on the JVM)",

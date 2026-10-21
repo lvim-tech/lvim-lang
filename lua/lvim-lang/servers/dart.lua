@@ -65,7 +65,8 @@ return {
         config = function()
             local o = opts()
             local so = server_opts()
-            local dart = toolchain.resolve("dart", "dart", current_root()) or "dart"
+            local root = current_root()
+            local dart = toolchain.resolve("dart", "dart", root) or "dart"
             -- closingLabels must be requested in init_options for dartls to SEND the
             -- notifications at all; the decoration engine then gates their rendering (so the
             -- runtime toggle just shows/hides the cached extmarks). Only request them when
@@ -80,6 +81,8 @@ return {
             })
             return {
                 cmd = { dart, "language-server", "--protocol=lsp" },
+                -- The SDK's bin dir first on PATH (an FVM-pinned SDK is not the PATH one).
+                cmd_env = toolchain.env("dart", root, "dart"),
                 filetypes = { "dart" },
                 capabilities = capabilities(),
                 init_options = init,
