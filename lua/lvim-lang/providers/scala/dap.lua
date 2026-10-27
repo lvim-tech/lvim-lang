@@ -136,15 +136,29 @@ function M.debug_test(_, ctx)
         vim.notify("lvim-lang: lvim-dap not available", vim.log.levels.WARN, TITLE)
         return
     end
+    if not vim.api.nvim_buf_is_valid(ctx.bufnr) then
+        vim.notify("lvim-lang: no buffer to debug", vim.log.levels.WARN, TITLE)
+        return
+    end
+
     -- Metals starts the DAP server asynchronously; the short delay lets an in-flight import settle
     -- before the request, matching the other JVM providers' attach timing.
+    --
+    -- The buffer is read HERE rather than inside the deferred call. That delay is half a second
+    -- in which the user can close the test file, and `nvim_buf_get_name` on a buffer that has
+    -- gone raises "Invalid buffer id" from a timer callback -- an error with no visible cause and
+    -- no debug session. The name and the URI do not change while we wait, so there is nothing to
+    -- gain by reading them late; Java and Kotlin resolve everything before deferring, and this
+    -- brings Scala in line with them.
     local delay = opts().debug_attach_delay_ms or 500
+    local title = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(ctx.bufnr), ":t")
+    local path = vim.uri_from_bufnr(ctx.bufnr)
     vim.defer_fn(function()
         dap.run({
             type = "scala",
             request = "launch",
-            name = "Debug tests in " .. vim.fn.fnamemodify(vim.api.nvim_buf_get_name(ctx.bufnr), ":t"),
-            metals = { runType = "testFile", path = vim.uri_from_bufnr(ctx.bufnr) },
+            name = "Debug tests in " .. title,
+            metals = { runType = "testFile", path = path },
         })
     end, delay)
 end
