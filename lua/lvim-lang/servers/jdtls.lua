@@ -40,8 +40,7 @@ end
 --- The jdtls server catalog entry (settings / init_options).
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers.jdtls) or {}
+    return require("lvim-lang.core.catalog").server_options("java", "jdtls")
 end
 
 --- Resolve the project root for the current buffer using Java's root markers.

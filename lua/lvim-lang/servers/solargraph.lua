@@ -31,8 +31,7 @@ end
 --- The solargraph server catalog entry (settings).
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers.solargraph) or {}
+    return require("lvim-lang.core.catalog").server_options("ruby", "solargraph")
 end
 
 --- Resolve the project root for the current buffer using Ruby's root markers.

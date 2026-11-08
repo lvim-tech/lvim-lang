@@ -26,8 +26,7 @@ end
 --- The rust-analyzer server catalog entry (settings / init_options).
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers["rust-analyzer"]) or {}
+    return require("lvim-lang.core.catalog").server_options("rust", "rust-analyzer")
 end
 
 --- Resolve the project root for the current buffer using Cargo's root markers.

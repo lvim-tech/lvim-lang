@@ -371,6 +371,13 @@ exists — the server config() returns nil elsewhere, so it never spawns in a pl
 CSS / TypeScript buffer. Configure or disable each under `companions` (enabled / mason /
 cmd / filetypes / root_patterns / settings); add your own by putting another key there.
 
+`settings` and `init_options` of any server entry (a provider's `lsp.servers.<key>` or a
+companion) may be a function returning the table. It is called each time the server
+starts, so a value that depends on what is installed is read when it is used, not when
+the provider loads. astro and vue use this for the TypeScript SDK bundled in their
+package. A table you set replaces such a function as a whole: to keep the default and add
+to it, give a function that builds both.
+
 ==============================================================================
 8. HEALTH                                                      *lvim-lang-health*
 

@@ -29,8 +29,7 @@ end
 --- config.providers.swift.lsp.servers["sourcekit-lsp"].
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers["sourcekit-lsp"]) or {}
+    return require("lvim-lang.core.catalog").server_options("swift", "sourcekit-lsp")
 end
 
 --- Resolve the project root for the current buffer using SwiftPM's root markers.

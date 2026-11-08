@@ -26,8 +26,7 @@ end
 --- The clangd server catalog entry (flags / init_options), from config.providers.cpp.lsp.servers.clangd.
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers.clangd) or {}
+    return require("lvim-lang.core.catalog").server_options("cpp", "clangd")
 end
 
 --- Resolve the project root for the current buffer using clangd's root markers.

@@ -19,6 +19,33 @@ local function popts(name)
     return config.providers[name] or {}
 end
 
+--- A directory inside an installed lvim-pkg package, or nil when the package or the directory is not
+--- there. Resolved through `lvim-pkg.package_path`, never a hardcoded install layout. Call it when the
+--- path is used, not when a module loads: the package may still be installing then.
+---@param pkg_name string
+---@param ... string  path segments below the package directory
+---@return string|nil
+function M.package_dir(pkg_name, ...)
+    local ok, pkg = pcall(require, "lvim-pkg")
+    if not ok or type(pkg.package_path) ~= "function" then
+        return nil
+    end
+    local dir = vim.fs.joinpath(pkg.package_path(pkg_name), ...)
+    return vim.fn.isdirectory(dir) == 1 and dir or nil
+end
+
+--- The `init_options` of a Volar-based server (astro, vue): the TypeScript SDK bundled in its package.
+--- These servers refuse to start without a real `typescript.tsdk`. A function for the server entry, so
+--- the path is looked up each time the server starts; nil (no options) while the package is missing.
+---@param pkg_name string
+---@return fun(): table|nil
+function M.bundled_tsdk(pkg_name)
+    return function()
+        local tsdk = M.package_dir(pkg_name, "node_modules", "typescript", "lib")
+        return tsdk and { typescript = { tsdk = tsdk } } or nil
+    end
+end
+
 --- An explicit user override for `tool` from config.providers[name].bin_paths[tool], or nil. Wins over
 --- every other strategy so a user can always pin a binary.
 ---@param name string

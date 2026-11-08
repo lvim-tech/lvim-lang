@@ -26,8 +26,7 @@ end
 --- The phpactor server catalog entry, from config.providers.php.lsp.servers.phpactor.
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers.phpactor) or {}
+    return require("lvim-lang.core.catalog").server_options("php", "phpactor")
 end
 
 --- Resolve the project root for the current buffer using PHP's root markers.

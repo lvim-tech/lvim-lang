@@ -32,8 +32,7 @@ end
 --- The ruby-lsp server catalog entry (init_options).
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers["ruby-lsp"]) or {}
+    return require("lvim-lang.core.catalog").server_options("ruby", "ruby-lsp")
 end
 
 --- Resolve the project root for the current buffer using Ruby's root markers.

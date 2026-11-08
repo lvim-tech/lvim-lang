@@ -28,8 +28,7 @@ end
 --- The zls server catalog entry (settings / init_options), from config.providers.zig.lsp.servers.zls.
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers.zls) or {}
+    return require("lvim-lang.core.catalog").server_options("zig", "zls")
 end
 
 --- Resolve the project root for the current buffer using Zig's root markers.

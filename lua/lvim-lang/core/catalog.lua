@@ -46,6 +46,39 @@ function M.server_entry(name, key)
     return ((popts(name).lsp or {}).servers or {})[key]
 end
 
+--- Server-entry fields that may be a function returning the table instead of the table itself.
+local DEFERRED_FIELDS = { "settings", "init_options" }
+
+--- `entry` with its deferred fields resolved. `settings` and `init_options` may be functions: they are
+--- called here, each time a server is started, so a value that depends on the machine (a path inside an
+--- installed package) is read when it is used. Read when the provider module loads, it froze whatever
+--- was true then — and a server installed by the prompt that the same buffer opened started without
+--- it. A function that returns anything but a table leaves the field absent. The entry itself is never
+--- changed; an entry without functions is returned as it is.
+---@param entry table|nil
+---@return table
+function M.resolve_entry(entry)
+    entry = entry or {}
+    local out
+    for _, field in ipairs(DEFERRED_FIELDS) do
+        if type(entry[field]) == "function" then
+            out = out or vim.tbl_extend("force", {}, entry)
+            local value = entry[field]()
+            out[field] = type(value) == "table" and value or nil
+        end
+    end
+    return out or entry
+end
+
+--- The server entry for (provider, key) with its deferred fields resolved (see resolve_entry). Never
+--- nil: a server with no entry gets `{}`. Every server config module reads its options through this.
+---@param name string
+---@param key string
+---@return table
+function M.server_options(name, key)
+    return M.resolve_entry(M.server_entry(name, key))
+end
+
 --- The provider's declared filetypes (from its registered spec).
 ---@param name string
 ---@return string[]

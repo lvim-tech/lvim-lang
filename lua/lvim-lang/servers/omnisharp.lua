@@ -27,8 +27,7 @@ end
 --- config.providers.csharp.lsp.servers.omnisharp.
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers.omnisharp) or {}
+    return require("lvim-lang.core.catalog").server_options("csharp", "omnisharp")
 end
 
 --- Whether a directory entry name is a C# project-root marker (a `.sln`/`.csproj` glob, or `.git`).

@@ -27,8 +27,7 @@ end
 --- config.providers.go.lsp.servers.gopls.
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers.gopls) or {}
+    return require("lvim-lang.core.catalog").server_options("go", "gopls")
 end
 
 --- Resolve the project root for the current buffer using gopls' root markers.

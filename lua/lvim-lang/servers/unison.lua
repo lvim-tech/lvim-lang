@@ -32,8 +32,7 @@ end
 --- config.providers.unison.lsp.servers.unison.
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers.unison) or {}
+    return require("lvim-lang.core.catalog").server_options("unison", "unison")
 end
 
 --- The LSP client_capabilities fragment: lvim-cmp's when present, else the Neovim defaults.

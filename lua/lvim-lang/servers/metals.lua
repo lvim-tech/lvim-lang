@@ -38,8 +38,7 @@ end
 --- config.providers.scala.lsp.servers.metals.
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers.metals) or {}
+    return require("lvim-lang.core.catalog").server_options("scala", "metals")
 end
 
 --- Resolve the project root for the current buffer using Scala's root markers.

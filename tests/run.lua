@@ -127,6 +127,7 @@ for _, spec in ipairs({
     "baseline_spec.lua",
     "toolchain_env_spec.lua",
     "deferred_dap_spec.lua",
+    "deferred_options_spec.lua",
 }) do
     dofile(root .. "/tests/" .. spec)
 end

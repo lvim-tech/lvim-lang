@@ -78,17 +78,19 @@ function M.server_module(key)
                 for _, arg in ipairs(entry.cmd or { entry.mason or key }) do
                     cmd[#cmd + 1] = arg == "${root}" and root or arg
                 end
+                -- Resolved per start, like a provider's server: settings / init_options may be functions.
+                local opts = require("lvim-lang.core.catalog").resolve_entry(entry)
                 local cfg = {
                     cmd = cmd, -- cmd[1] is resolved against PATH / lvim-pkg / mason by lvim-ls
                     filetypes = entry.filetypes,
                     capabilities = capabilities(),
                 }
                 -- Empty settings/init_options encode as a JSON array ([]) which servers reject; omit them.
-                if entry.settings and next(entry.settings) then
-                    cfg.settings = vim.deepcopy(entry.settings)
+                if opts.settings and next(opts.settings) then
+                    cfg.settings = vim.deepcopy(opts.settings)
                 end
-                if entry.init_options and next(entry.init_options) then
-                    cfg.init_options = vim.deepcopy(entry.init_options)
+                if opts.init_options and next(opts.init_options) then
+                    cfg.init_options = vim.deepcopy(opts.init_options)
                 end
                 return cfg
             end,

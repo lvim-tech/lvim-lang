@@ -27,8 +27,7 @@ end
 --- The basedpyright server catalog entry (settings / init_options).
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers.basedpyright) or {}
+    return require("lvim-lang.core.catalog").server_options("python", "basedpyright")
 end
 
 --- Resolve the project root for the current buffer using Python's root markers.

@@ -27,8 +27,7 @@ end
 --- The HLS server catalog entry (settings / init_options).
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers["haskell-language-server"]) or {}
+    return require("lvim-lang.core.catalog").server_options("haskell", "haskell-language-server")
 end
 
 --- Resolve the project root for the current buffer using Haskell's root markers.

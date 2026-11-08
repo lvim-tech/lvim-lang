@@ -27,8 +27,7 @@ end
 --- config.providers.fsharp.lsp.servers.fsautocomplete.
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers.fsautocomplete) or {}
+    return require("lvim-lang.core.catalog").server_options("fsharp", "fsautocomplete")
 end
 
 --- Whether a directory entry name is an F# project-root marker (a `.sln`/`.fsproj` glob, the paket

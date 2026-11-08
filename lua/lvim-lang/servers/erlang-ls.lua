@@ -29,8 +29,7 @@ end
 --- The erlang-ls server catalog entry (settings).
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers["erlang-ls"]) or {}
+    return require("lvim-lang.core.catalog").server_options("erlang", "erlang-ls")
 end
 
 --- Resolve the project root for the current buffer using Erlang's root markers.

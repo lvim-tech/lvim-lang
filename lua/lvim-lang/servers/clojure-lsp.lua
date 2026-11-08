@@ -39,8 +39,7 @@ end
 --- config.providers.clojure.lsp.servers["clojure-lsp"].
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers["clojure-lsp"]) or {}
+    return require("lvim-lang.core.catalog").server_options("clojure", "clojure-lsp")
 end
 
 --- Resolve the project root for the current buffer using Clojure's root markers.

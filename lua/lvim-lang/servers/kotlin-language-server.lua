@@ -40,8 +40,7 @@ end
 --- config.providers.kotlin.lsp.servers["kotlin-language-server"].
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers["kotlin-language-server"]) or {}
+    return require("lvim-lang.core.catalog").server_options("kotlin", "kotlin-language-server")
 end
 
 --- Resolve the project root for the current buffer using Kotlin's root markers.

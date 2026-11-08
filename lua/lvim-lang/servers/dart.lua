@@ -29,8 +29,7 @@ end
 --- The dartls server catalog entry (settings / init_options), from config.providers.dart.lsp.servers.dart.
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers.dart) or {}
+    return require("lvim-lang.core.catalog").server_options("dart", "dart")
 end
 
 --- Resolve the project root for the current buffer using dartls' root markers.

@@ -41,8 +41,7 @@ function M.build()
             root_patterns = { "project.godot", ".git" },
             ---@return table
             config = function()
-                local se = (((require("lvim-lang.config").providers.gdscript or {}).lsp or {}).servers or {}).gdscript
-                    or {}
+                local se = require("lvim-lang.core.catalog").server_options("gdscript", "gdscript")
                 local host = se.host or "127.0.0.1"
                 local port = tonumber(se.port) or 6005
                 return {

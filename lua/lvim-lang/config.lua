@@ -55,8 +55,8 @@
 ---@field filetypes      string[]   The (cross-provider) filetypes this server co-attaches to
 ---@field require_root?  boolean    Only start where a `root_patterns` marker exists (config() returns nil otherwise) — for project-scoped servers (tailwind / angular)
 ---@field root_patterns? string[]   Markers that resolve the project root (and gate `require_root`)
----@field settings?      table      LSP `settings` (sent only when non-empty)
----@field init_options?  table      LSP `initializationOptions` (sent only when non-empty)
+---@field settings?      table|fun(): table?  LSP `settings` (sent only when non-empty); a function is called at every server start
+---@field init_options?  table|fun(): table?  LSP `initializationOptions` (sent only when non-empty); a function is called at every server start
 
 ---@type LvimLangConfig
 return {

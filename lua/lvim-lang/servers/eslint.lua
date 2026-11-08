@@ -27,8 +27,7 @@ end
 --- The eslint server catalog entry (settings).
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers.eslint) or {}
+    return require("lvim-lang.core.catalog").server_options("typescript", "eslint")
 end
 
 --- Resolve the project root for the current buffer using the JS/TS root markers.

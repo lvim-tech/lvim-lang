@@ -2,25 +2,6 @@
 --
 ---@module "lvim-lang.providers.registry.astro"
 
---- The TypeScript SDK bundled with a language-server package. Volar-based servers refuse to start
---- their TS integration without a real `tsdk` path, so this is not optional for them.
---- Resolved through `lvim-pkg.package_path` — NEVER a hardcoded install layout: the previous config
---- hardcoded `~/.local/share/nvim/mason/packages/...`, which silently became a dead path the moment
---- mason was replaced by lvim-pkg, and the setting was dropped in the move instead of ported.
---- Returns nil when the package is not installed, so no bogus path is ever sent.
----@param pkg_name string
----@return string?
-local function bundled_tsdk(pkg_name)
-    local ok, pkg = pcall(require, "lvim-pkg")
-    if not ok or type(pkg.package_path) ~= "function" then
-        return nil
-    end
-    local dir = vim.fs.joinpath(pkg.package_path(pkg_name), "node_modules", "typescript", "lib")
-    return vim.fn.isdirectory(dir) == 1 and dir or nil
-end
-
-local tsdk = bundled_tsdk("astro-language-server")
-
 ---@type LvimLangSpecData
 return {
     name = "astro",
@@ -33,8 +14,10 @@ return {
                 bin = "astro-ls",
                 cmd = { "astro-ls", "--stdio" },
                 filetypes = { "astro" },
-                -- nil when the package is not installed → the field is simply absent.
-                init_options = tsdk and { typescript = { tsdk = tsdk } } or nil,
+                -- Volar refuses to start without `typescript.tsdk`. A function, so the bundled SDK is
+                -- looked up when the server starts: read when this module loaded, it stayed nil for a
+                -- server installed by the prompt that opening the buffer raised.
+                init_options = require("lvim-lang.core.detect").bundled_tsdk("astro-language-server"),
             },
         },
         default = "astro-language-server",

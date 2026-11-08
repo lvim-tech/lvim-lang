@@ -29,8 +29,7 @@ end
 --- config.providers.csharp.lsp.servers.roslyn.
 ---@return table
 local function server_opts()
-    local lsp = opts().lsp or {}
-    return (lsp.servers and lsp.servers.roslyn) or {}
+    return require("lvim-lang.core.catalog").server_options("csharp", "roslyn")
 end
 
 --- Whether a directory entry name is a C# project-root marker (a `.sln`/`.csproj` glob, or `.git`).

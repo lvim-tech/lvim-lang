@@ -462,7 +462,7 @@ function M.server_module(key)
             config = function()
                 local root = current_root(patterns)
                 local popts = config.providers[name] or {}
-                local se = ((popts.lsp or {}).servers or {})[key] or {}
+                local se = catalog.resolve_entry(((popts.lsp or {}).servers or {})[key])
                 local bin = toolchain.resolve(name, key, root) or se.bin or se.mason or key
                 -- An explicit multi-word `cmd` (e.g. { "nu", "--lsp" }) has its head re-resolved; else `{ bin }`.
                 local cmd = se.cmd and vim.deepcopy(se.cmd) or { bin }
