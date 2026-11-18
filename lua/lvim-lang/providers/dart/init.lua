@@ -191,7 +191,7 @@ spec.statusline = function(root, sopts)
     end
     local rc = require("lvim-lang.core.runcfg").active(root)
     if rc and rc.name then
-        parts[#parts + 1] = "➤ " .. rc.name
+        parts[#parts + 1] = "󰅂 " .. rc.name
     end
     return table.concat(parts, "  ")
 end

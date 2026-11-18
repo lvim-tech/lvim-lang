@@ -377,7 +377,7 @@ function M.build(data)
         end
         local rc = runcfg.active(root)
         if rc and rc.name then
-            parts[#parts + 1] = "➤ " .. rc.name
+            parts[#parts + 1] = "󰅂 " .. rc.name
         end
         return table.concat(parts, "  ")
     end
