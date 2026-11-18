@@ -50,9 +50,11 @@ end
 --- The statusline segment for a buffer: the active provider's segment PLUS the shared running-task
 --- indicator (both empty when there is no provider / no running task, or when statusline segments
 --- are disabled). The running indicator is added HERE so every provider gets it consistently.
+--- `opts.icon = false` leaves the provider's own icon out (for a statusline that shows the filetype icon itself).
 ---@param bufnr? integer
+---@param opts? { icon?: boolean }
 ---@return string
-function M.statusline(bufnr)
+function M.statusline(bufnr, opts)
     local config = require("lvim-lang.config")
     if config.statusline == false then
         return ""
@@ -63,7 +65,7 @@ function M.statusline(bufnr)
     end
     local segment = ""
     if provider.statusline then
-        local ok, seg = pcall(provider.statusline, root)
+        local ok, seg = pcall(provider.statusline, root, opts or {})
         segment = (ok and type(seg) == "string") and seg or ""
     end
     local running = M.running_indicator(provider.name, root)

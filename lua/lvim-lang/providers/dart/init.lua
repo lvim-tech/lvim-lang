@@ -173,10 +173,14 @@ spec.outline = require("lvim-lang.providers.dart.outline").spec
 --- Statusline segment for a root: the Flutter marker, the selected device, the run state, and the active
 --- run config. All glyphs come from config.providers.dart.icons (configurable).
 ---@param root string
+---@param sopts? { icon?: boolean }  `icon = false`: without the Flutter marker (the bar shows the filetype icon)
 ---@return string
-spec.statusline = function(root)
+spec.statusline = function(root, sopts)
     local ic = opts().icons or {}
-    local parts = { ic.statusline or "󰔶" }
+    local parts = {}
+    if not (sopts and sopts.icon == false) then
+        parts[1] = ic.statusline or "󰔶"
+    end
     local device = require("lvim-lang.providers.dart.devices").selected(root)
     if device then
         parts[#parts + 1] = (ic.device or "󰄶") .. " " .. (device.name or device.id)

@@ -112,10 +112,13 @@ end
 
 --- The statusline segment for a buffer (the active provider's), for a user's statusline.
 ---   require("lvim-lang").status()
+---   require("lvim-lang").status(0, { icon = false })  -- without the provider's own icon (a statusline that
+---                                                     -- already shows the filetype icon)
 ---@param bufnr? integer
+---@param opts? { icon?: boolean }
 ---@return string
-function M.status(bufnr)
-    return require("lvim-lang.core.ui").statusline(bufnr)
+function M.status(bufnr, opts)
+    return require("lvim-lang.core.ui").statusline(bufnr, opts)
 end
 
 return M

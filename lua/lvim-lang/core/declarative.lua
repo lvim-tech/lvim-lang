@@ -369,10 +369,10 @@ function M.build(data)
 
     -- Statusline: the provider icon + the active run config (only when an icon is configured).
     local has_icon = (data.icons or {}).statusline ~= nil
-    local function statusline(root)
+    local function statusline(root, opts)
         local ic = (config.providers[name] and config.providers[name].icons) or {}
         local parts = {}
-        if ic.statusline and ic.statusline ~= "" then
+        if ic.statusline and ic.statusline ~= "" and not (opts and opts.icon == false) then
             parts[#parts + 1] = ic.statusline
         end
         local rc = runcfg.active(root)
