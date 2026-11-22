@@ -62,6 +62,11 @@ end
 ---@param root string
 ---@return nil
 function M.notify_failures(name, root)
+    -- the preview Neovim of lvim-fuzzy (lfz / lvc) only shows the file: nobody there can act on a notice, and a message box does not
+    -- fit its small grid
+    if vim.g.lvim_fuzzy_preview then
+        return
+    end
     for _, r in ipairs(M.check(name, root)) do
         if not r.ok and r.severity ~= "info" then
             local key = root .. "\0" .. (r.label or "")
